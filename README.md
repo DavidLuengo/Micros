@@ -15,10 +15,10 @@ Recordatorio basico de Git: Git es un lenguaje que permite crear un control de v
   Push: eniar datos al repositorio desde el ordenador personal
   
   
-  Rama_2:           C---C---C---C---C
-                   /                 \ (merge request)
-  Master: C---C---C---C---C---C---C---C---(...)
-               \                 / (merge request)
-  Rama_1:       C---C---C---C---C
+  'Rama_2:           C---C---C---C---C'
+  '                 /                 \ (merge request)'
+  'Master: C---C---C---C---C---C---C---C---(...)'
+  '             \                 / (merge request)'
+  'Rama_1:       C---C---C---C---C'
   
   
