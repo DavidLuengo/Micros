@@ -2,7 +2,7 @@
 Repositorio de bolera
 
 
-Recordatorio basico de Git: Git es un lenguaje que permite crear un control de versiones de forma ordenada.
+**Recordatorio basico de Git:** Git es un lenguaje que permite crear un control de versiones de forma ordenada.
 
   Ramas (Branches): el comportamiento de un repositorio de Git es parecido a un arbol. Existe una rama original llamada "master"
     De master pueden salir ramas paralelas ("branches"), cada una con su nombre.
@@ -15,10 +15,14 @@ Recordatorio basico de Git: Git es un lenguaje que permite crear un control de v
   Push: eniar datos al repositorio desde el ordenador personal
   
   
-  'Rama_2:           C---C---C---C---C'
-  '                 /                 \ (merge request)'
-  'Master: C---C---C---C---C---C---C---C---(...)'
-  '             \                 / (merge request)'
-  'Rama_1:       C---C---C---C---C'
+  Rama_2:           C---C---C---C---C
+  
+                   /                 \ (merge request)
+                   
+  Master: C---C---C---C---C---C---C---C---(...)
+  
+               \                 / (merge request)
+               
+  Rama_1:       C---C---C---C---C
   
   
