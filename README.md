@@ -15,7 +15,7 @@ Repositorio de bolera
   Push: eniar datos al repositorio desde el ordenador personal
   
   
-  Rama_2:           C---C---C---C---C
+  `Rama_2:           C---C---C---C---C
   
                    /                 \ (merge request)
                    
@@ -23,6 +23,6 @@ Repositorio de bolera
   
                \                 / (merge request)
                
-  Rama_1:       C---C---C---C---C
+  Rama_1:       C---C---C---C---C`
   
   
