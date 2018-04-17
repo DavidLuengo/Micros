@@ -14,15 +14,15 @@ Repositorio de bolera
   Pull: traer desde el repositorio al ordenador personal
   Push: eniar datos al repositorio desde el ordenador personal
   
+  '''
+  Rama_2:           C---C---C---C---C
   
-  `Rama_2:           C---C---C---C---C`
-  
-  `                 /                 \ (merge request)`
+                   /                 \ (merge request)
                    
-  `Master: C---C---C---C---C---C---C---C---(...)`
+  Master: C---C---C---C---C---C---C---C---(...)
   
-  `             \                 / (merge request)`
+               \                 / (merge request)
                
-  `Rama_1:       C---C---C---C---C`
-  
+  Rama_1:       C---C---C---C---C
+  '''
   
