@@ -2,6 +2,8 @@
 
 int main(){
 printf("Hola mundo!");
+  
+printf("\nCambios realizados de ejamplo.")
 
 return 0;
 
