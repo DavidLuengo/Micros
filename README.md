@@ -1,5 +1,5 @@
 # Micros
-Repositorio de bolera
+## Repositorio de bolera
 
 
 **Recordatorio basico de Git:** Git es un software que permite crear un control de versiones de forma ordenada.
@@ -11,16 +11,17 @@ Repositorio de bolera
   
   Merge: es cuano una rama se fusiona con otra, creando una version que incluye los cambios en ambas. Lo normal y recomendable es fusionar las ramas con con la rama de la que han partido, pero no es obligatorio.
   
-  Merge request: petición para fusionar una rama con otra, en la cual se comparan ambas versiones y se depuran errores e      incompatibilidades.
-  
   Compare: compara el contenido de dos "commits" y de sus archivos.
     Esta opción es obligatoria en una "merge request" (peticion de fusion), pero que puede realizarse en cualquier momento.
   
   
   
-  Pull: traer desde el repositorio al ordenador personal.
+  Push: traer desde el repositorio al ordenador personal
   
-  Push: enviar datos al repositorio desde el ordenador personal.
+  Pull: enviar datos al repositorio desde el ordenador personal. También hace las veces de "merge"
+  
+  Pull request: petición para fusionar una rama con otra, en la cual se comparan ambas versiones y se depuran errores e      incompatibilidades.
+  
   
   ```
   Rama_2:           C---C---C---C---C
@@ -32,3 +33,8 @@ Repositorio de bolera
   C: commit
   ```
   
+## Recomendaciones
+
+1. Instalad la aplicación de Github.
+2. Trabajad en una rama con vuestro nombre (Mirad en el repositorio si ya está creada).
+3. Leerse este documento.
