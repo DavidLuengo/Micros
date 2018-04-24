@@ -8,7 +8,10 @@
 //	LIBRERIAS
 #include <avr/io.h>
 
-//	DEFINICIONES y ESTRUCTURAS
+//	DEFINICIONES, ESTRUCTURAS y CONSTANTES
+const uint8_t DCHA = 1;	// DERECHA
+const uint8_t IZDA = 0;	// IZQUIERDA
+
 typedef struct{
 	volatile uint8_t * port;
 	uint8_t enable;
@@ -24,6 +27,7 @@ motor motor3;
 motor motor4;
 motor motor5;
 
+	// Vector de direcciones a los motores
 motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
 
 //	FUNCIONES
@@ -33,6 +37,8 @@ void setup(){
 
 void moveMotor(motor* M, uint8_t direccion){
 	// Esta funcion mueve en la direccion asignada un motor
+	// Ejemplo:	moveMotor(motores[1],0);
+	//		moveMotor(&motor1,0);
 	M->enable = 1;
 	M->bk = 0;	// Esto puede no estar bien
 	M->dir = direccion;
