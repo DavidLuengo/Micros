@@ -9,8 +9,12 @@
 #include <avr/io.h>
 
 //	DEFINICIONES, ESTRUCTURAS y CONSTANTES
-const uint8_t DCHA = 1;	// DERECHA
-const uint8_t IZDA = 0;	// IZQUIERDA
+const uint8_t DCHA = 1;		// DERECHA
+const uint8_t IZDA = 0;		// IZQUIERDA
+const uint8_t ON = 1;		// ENABLE ON
+const uint8_t OFF = 0;		// ENABLE OFF
+const uint8_t ACT = 1;		// BK ACTIVO (solo motor2)
+const uint8_t DEACT = 0;	// BK INACTIVO (solo motor2)
 
 typedef struct{
 	volatile uint8_t * port;
@@ -31,7 +35,7 @@ motor motor5;
 motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
 
 //	FUNCIONES
-void setup(){
+void setup(void){
 	
 }
 
@@ -39,9 +43,13 @@ void moveMotor(motor* M, uint8_t direccion){
 	// Esta funcion mueve en la direccion asignada un motor
 	// Ejemplo:	moveMotor(motores[1],0);
 	//		moveMotor(&motor1,0);
-	M->enable = 1;
-	M->bk = 0;	// Esto puede no estar bien
+	M->enable = ON;
+	M->bk = DEACT;	// Esto puede no estar bien
 	M->dir = direccion;
+}
+
+void Dinamicstop(){
+	//Parada dinamica para motor2
 }
 
 //	PROGRAMA PRINCIPAL
