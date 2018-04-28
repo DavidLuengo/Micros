@@ -36,7 +36,11 @@ motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
 
 //	FUNCIONES
 void setup(void){
+	for(uint8_t i = 0; i < 6; i++){
+		//Pone en marcha todos los motores hacia su posición de inicio.
+	}
 	
+	//Esperamos un tiempo a que todos los SW estén pulsados.
 }
 
 void moveMotor(motor* M, uint8_t direccion){
@@ -51,6 +55,10 @@ void moveMotor(motor* M, uint8_t direccion){
 void Dinamicstop(){
 	//Parada dinamica para motor2
 }
+
+//	INTERRUPCIONES
+
+
 
 //	PROGRAMA PRINCIPAL
 int main(void)
