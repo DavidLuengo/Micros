@@ -72,6 +72,7 @@ int main(void)
 	
     while (1) 
     {
+	    // Bucle principal
     }
 }
 
