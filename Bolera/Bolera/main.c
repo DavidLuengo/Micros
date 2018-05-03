@@ -56,11 +56,18 @@ void moveMotor(motor* M, uint8_t direccion){
 	M->dir = direccion;
 }
 
-void Dinamicstop(){
+void Dinamicstop(void){
 	//Parada dinamica para motor2
+	motores[2]->enable = OFF;
+	motores[2]->bk = ACT;
+	motores[2]->dir = ~motores[2]->dir;
 }
 
 //	INTERRUPCIONES
+
+// Antirrebotes
+
+// Switch pulsado
 
 
 
