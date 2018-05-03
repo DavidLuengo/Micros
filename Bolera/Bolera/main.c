@@ -37,7 +37,11 @@ motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
 //	FUNCIONES
 void setup(void){
 	for(uint8_t i = 0; i < 6; i++){
+		//Deshabilitar interrupciones de switch
 		//Pone en marcha todos los motores hacia su posición de inicio.
+		//Esperar un tiempo (suficiente para que los que estuviesen pulsando un switch ya no lo enten haciendo en teoria)
+		//Habilitar interrupciones de switch
+		//Cuando todos se encuentren en su posicion original se carga la primera bola
 	}
 	
 	//Esperamos un tiempo a que todos los SW estén pulsados.
