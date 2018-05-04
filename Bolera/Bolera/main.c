@@ -42,13 +42,16 @@ motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
 
 //	FUNCIONES
 void setup(void){
-	for(uint8_t i = 0; i < 6; i++){
-		//Deshabilitar interrupciones de switch
-		//Pone en marcha todos los motores hacia su posición de inicio.
-		//Esperar un tiempo (suficiente para que los que estuviesen pulsando un switch ya no lo enten haciendo en teoria)
-		//Habilitar interrupciones de switch
-		//Cuando todos se encuentren en su posicion original se carga la primera bola
-	}
+	//Pone en marcha todos los motores hacia su posición de inicio.
+	//Esperar un tiempo
+	//Cuando todos se encuentren en su posicion original se carga la primera bola
+	
+	
+	moveMotor(motores[2],IZDA);
+	moveMotor(motores[3],IZDA);
+	moveMotor(motores[3],DCHA);
+	
+	delay(3000);
 	
 	//Esperamos un tiempo a que todos los SW estén pulsados.
 }
@@ -101,13 +104,36 @@ void Dinamicstop(void){
 	motores[2]->enable = OFF;
 	motores[2]->bk = ACT;
 	motores[2]->dir = ~motores[2]->dir;
+	
+	
+}
+
+void pruebaMotores(void){
+	moveMotor(&motor2,DCHA);
+	delay(2000);
+	moveMotor(&motor2,IZDA);
+	delay(2000);
+	moveMotor(&motor3,DCHA);
+	delay(2000);
+	moveMotor(&motor3,IZDA);
+	delay(2000);
+	moveMotor(&motor4,DCHA);
+	delay(2000);
+	moveMotor(&motor4,IZDA);
+	delay(2000);
+}
+
+void delay(int ms){
+	ciclos = ms * 2000;
+	for(int i = 0; i < ciclos; i++){
+	}
 }
 
 //	INTERRUPCIONES
 
 // Antirrebotes
 
-// Switch pulsado
+// Timer
 
 
 
@@ -115,6 +141,7 @@ void Dinamicstop(void){
 int main(void)
 {
     setup();
+	
 	
 	
     while (1) 
