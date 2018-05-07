@@ -41,19 +41,12 @@ motor motor5 = {&PORTB, 0, 0, 0, 6};
 motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
 
 //	FUNCIONES
-void setup(void){
-	//Pone en marcha todos los motores hacia su posición de inicio.
-	//Esperar un tiempo
-	//Cuando todos se encuentren en su posicion original se carga la primera bola
-	
-	
-	moveMotor(motores[2],IZDA);
-	moveMotor(motores[3],IZDA);
-	moveMotor(motores[3],DCHA);
-	
-	delay(3000);
-	
-	//Esperamos un tiempo a que todos los SW estén pulsados.
+
+void delay(int ms){
+	int ciclos = ms * 2000;
+	for(int i = 0; i < ciclos; i++){
+		asm("nop");
+	}
 }
 
 void moveMotor(motor* M, uint8_t direccion){
@@ -70,7 +63,7 @@ void moveMotor(motor* M, uint8_t direccion){
 		M->bk = DEACT;	// Esto puede no estar bien
 		M->dir = direccion;
 		
-		aux = (bk<<2)|(direccion<<1)|enable;
+		aux = (M->bk<<2)|(M->dir<<1)|M->enable;
 		
 		mask = (mask<<1)|0x01;
 		mask = ~mask;
@@ -87,26 +80,36 @@ void moveMotor(motor* M, uint8_t direccion){
 		mask = ~mask;
 		
 		//aux = (direccion*2 + enable)*2^(M->index);
-		aux = (direccion<<1)|enable;
+		aux = (direccion<<1)|M->enable;
 		aux = aux<<(M->index);
 		
 		//PORTB &= mask; // Deja libres los bits
 		//PORTB |= aux;
 	}
 	
-	M->port* &=mask;
-	M->port* |= aux;
+	*M->port &= mask;
+	*M->port |= aux;
 	
 }
 
-void Dinamicstop(void){
-	//Parada dinamica para motor2
-	motores[2]->enable = OFF;
-	motores[2]->bk = ACT;
-	motores[2]->dir = ~motores[2]->dir;
+void setup_nuestro(void){
+	moveMotor(motores[2],IZDA);
+	moveMotor(motores[3],IZDA);
+	moveMotor(motores[3],DCHA);
+	
+	delay(3000);
+	
+	//Esperamos un tiempo a que todos los SW estén pulsados.
+}
+
+void setup(void){
+	//Pone en marcha todos los motores hacia su posición de inicio.
+	//Esperar un tiempo
+	//Cuando todos se encuentren en su posicion original se carga la primera bola
 	
 	
 }
+
 
 void pruebaMotores(void){
 	moveMotor(&motor2,DCHA);
@@ -123,24 +126,22 @@ void pruebaMotores(void){
 	delay(2000);
 }
 
-void delay(int ms){
-	ciclos = ms * 2000;
-	for(int i = 0; i < ciclos; i++){
-	}
-}
 
-//	INTERRUPCIONES
+
+//	INTERRUPCIONE
 
 // Antirrebotes
 
 // Timer
-
+ISR(){
+	
+}
 
 
 //	PROGRAMA PRINCIPAL
 int main(void)
 {
-    setup();
+    setup_nuestro();
 	
 	
 	
