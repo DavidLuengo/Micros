@@ -132,7 +132,7 @@ int moveMotor(motor* M, uint8_t direccion){
 	return retardo;
 }
 
-void dynamicstop(motor *M){//NOTA IMPORTANTE
+void stopMotor(motor *M){//NOTA IMPORTANTE
 	 
 	uint8_t aux = 0;
 	uint8_t mask = 0b00000011;
@@ -306,15 +306,19 @@ void swing(){
 	PCICR= 0b00000100; //Hemos habilitado el grupo de interrupciones del PCINT16 al PCINT23
 	sei();//habilitar interrupciones globales
 	
+	// Encender LED
+	setBit(PORTK,1);
+	
 	if(!motores[2]->dir){
 		retardo=moveMotor(&motor2,DCHA);//Multiplicar por una constante que permita un buen barrido
 		delay(retardo);
-		PORTL= 0b00000000;
+		stopMotor(&motor2);
 		delay(50);
-	} else {	
+	} 
+	else {	
 		retardo=moveMotor(&motor2,IZDA);
 		delay(retardo);
-		PORTL= 0b00000000;
+		stopMotor(&motor2);
 		delay(50);
 	}
 }
