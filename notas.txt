@@ -1,0 +1,8 @@
+COSAS A AÑADIR
+  1- Lógica de la partida extra
+  2- Logica de LED para lanzamiento
+  3- Arreglar subrutina "swing"
+  4- Decidir partes de ensamblador
+    - Posible: parpadeo LED en partida extra (dentro de subrutina en c llamar a asm)
+  5- Separar funciones en librerias y mk file
+  6- Acabar funcion lanzar bola
