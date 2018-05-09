@@ -94,13 +94,13 @@ int moveMotor(motor* M, uint8_t direccion){
 		PORTB |= aux;
 		
 		if(M->index==0){
-			retardo=187; //1,5seg motor1
+			retardo=10000; //1,5seg motor1
 		} else if(M->index==2){
-			retardo=437; //3,5seg motor3
+			retardo=10000; //3,5seg motor3
 		} else if(M->index==4){
-			retardo=125; //1seg motor4
+			retardo=10000; //1seg motor4
 		} else {
-			retardo=500; //4seg motor5
+			retardo=10000; //4seg motor5
 		}
 	} 
 	return retardo;
@@ -170,14 +170,16 @@ ISR(PCINT2_vect) {
 int cb1(){//3.5seg
 	moveMotor(&motor2, DCHA); //Quiero ponerlo listo para recibir bola
 	retardo=moveMotor(&motor3, DCHA); //avanza adelante=DCHA
+	delay(15000);
 	return retardo;
 }
 
 int cb2(){//1seg
-	moveMotor(&motor2, IZDA);
-	delay(120);
-	dynamicstop(&motor2);
+	//moveMotor(&motor2, IZDA);
+	//delay(130);
+	//dynamicstop(&motor2);
 	retardo=moveMotor(&motor4, DCHA);//cierro compuerta=DCHA
+	delay(15000);
 	return retardo;
 }
 
@@ -185,20 +187,25 @@ int cb3(){//3.5seg
 	retardo=560;
 	moveMotor(&motor3, IZDA);
 	moveMotor(&motor1,IZDA);
+	delay(15000);
 	return retardo; 
 }
 
 int cb4(){//1.5seg
 	retardo=moveMotor(&motor1, DCHA); //Dejo pongo la bola lista en el lanzador
+	moveMotor(&motor2, IZDA);
+	delay(130);
+	dynamicstop(&motor2);
+	delay(15000);
 	return retardo;
 }
 
 int cb5(){//1seg
-	moveMotor(&motor1, IZDA);
-	delay(100);
-	dynamicstop(&motor1);
-	moveMotor(&motor2, IZDA); //IMPORTANTE no se puede mover el motor 1 y motor 2 al mismo tiempo
-	retardo=250;
+//	moveMotor(&motor1, IZDA);
+	//delay(100);
+	//dynamicstop(&motor1);
+	moveMotor(&motor2,IZDA); //IMPORTANTE no se puede mover el motor 1 y motor 2 al mismo tiempo
+	retardo=7000;
 	return retardo;
 }
 
@@ -230,61 +237,73 @@ ISR(TIMER1_OVF_vect){
 }
 
 void swing(){
-	cli(); //IMPORTANTE tiene sentido?
+	//cli(); //IMPORTANTE tiene sentido?
 	PCMSK2 = 0x01; //Hemos activado Interrupción PCINT16 del PORTK
 	PCICR= 0b00000100; //Hemos habilitado el grupo de interrupciones del PCINT16 al PCINT23
-	sei();//habilitar interrupciones globales
-	
-	if(!motores[2]->dir){
-		retardo=moveMotor(&motor2,DCHA);//Multiplicar por una constante que permita un buen barrido
-		delay(retardo);
-		PORTL= 0b00000000;
-		delay(50);
-	} else {	
-		retardo=moveMotor(&motor2,IZDA);
-		delay(retardo);
-		PORTL= 0b00000000;
-		delay(50);
+	//sei();//habilitar interrupciones globales
+	retardo=3000;
+	if(~motores[2]->dir){
+		moveMotor(&motor2,DCHA);//Multiplicar por una constante que permita un buen barrido
+		delay(300);
+		/*PORTL= 0b00000000;
+		delay(50);*/
+		dynamicstop(&motor2);
+		motores[2]->dir=~motores[2]->dir;
+	} else if (motores[2]->dir) {	
+		moveMotor(&motor2,IZDA);
+		delay(300);
+		/*PORTL= 0b00000000;
+		delay(50);*/
+		dynamicstop(&motor2);
 	}
 }
 
 void cargarbola(){
 	if(PINL & 0b00100000){
 		retardo=moveMotor(&motor2, IZDA)*0.5; //Lejos de recibir bola=IZDA
-		delay(retardo);
+		delay(10000);
 	}
-	if(PINL & 0b00000100){
+	if(PINL & 0b00000100){//Verificar que cuando SW2 esta activo M1 se sube
 		retardo=moveMotor(&motor1, DCHA);
-		delay(retardo);
+		delay(10000);
 	}
 		retardo=cb1();
-		delay(retardo);
+		delay(10000);
 		
 		retardo=cb2();
-		delay(retardo);
+		delay(10000);
 		
 		retardo=cb3();
-		delay(retardo);
+		delay(10000);
 		
 		retardo=cb4();
-		delay(retardo);
+		delay(10000);
 		
 		retardo=cb5();
 		delay(retardo); //Aprox para poner en la mitad
+		dynamicstop(&motor2);
 }
 
 void inicializacion(){
 	retardo=moveMotor(&motor5, IZDA); //Bajar=IZDA
 	moveMotor(&motor4, IZDA); //Abrir=IZDA
-	moveMotor(&motor1, DCHA); //recibo bola=DCHA
+	moveMotor(&motor1, IZDA); //recibo bola=DCHA
 	delay(retardo); //Quiero tiempo suficiente para bajar motor5 y cargar bola en elevador de carga
 	cargarbola();
 }
-
+/*void prueba(){
+	moveMotor(&motor1,DCHA);//M1 DCHA=SUBE
+	moveMotor(&motor3,DCHA);//M3 DCHA=AVANZA
+	moveMotor(&motor4,DCHA);//M4 DCHA=CIERRA
+	delay(250);
+	
+}*/
 //	PROGRAMA PRINCIPAL
 int main(void){
     setup();
+	//prueba();
 	inicializacion();
+	
     while (1) 
     {
 		// Bucle principal
