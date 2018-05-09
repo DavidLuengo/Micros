@@ -57,6 +57,21 @@ void delay(int ms){
 
 */
 
+void changeBit(uint8_t * puerto, uint8_t bit){
+	//sintaxis:	changeBit( &POTRB , 2 )
+	uint8_t p_aux = 0x00;
+	uint8_t mask = 0x01;
+	
+	mask = mask << bit;
+	
+	p_aux = ~(*puerto);
+	p_aux &= mask;
+	
+	*puerto &= ~mask;
+	
+	*puerto |= p_aux;
+}
+
 void moveMotor(motor* M, uint8_t direccion){
 	// Esta funcion mueve en la direccion asignada un motor
 	// Ejemplo:	moveMotor(motores[1],0);
@@ -169,24 +184,9 @@ void setup(void){
 	//Cuando todos se encuentren en su posicion original se carga la primera bola
 }
 
-/*
-void pruebaMotores(void){
-	moveMotor(&motor2,DCHA);
-	delay(2000);
-	moveMotor(&motor2,IZDA);
-	delay(2000);
-	moveMotor(&motor3,DCHA);
-	delay(2000);
-	moveMotor(&motor3,IZDA);
-	delay(2000);
-	moveMotor(&motor4,DCHA);
-	delay(2000);
-	moveMotor(&motor4,IZDA);
-	delay(2000);
-}
-*/
 
-void lanzamiento (){						//cuando esté listo para lanzar y pulse SW6 pasarle qué vble? 
+void lanzamiento (){						
+		//cuando esté listo para lanzar y pulse SW6 pasarle qué vble? 
 
 		//motor2 activo brake para pararlo, enable 0 y DI da = no?
 setBit (K,1); //enciendo bit
