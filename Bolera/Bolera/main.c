@@ -8,25 +8,27 @@
 // Puerto J1:
 //	Puerto B: motores 1, 3, 4, 5 (bajo: enable, alto: dir)
 //	Puerto L: motor 2 (enable 0, dir 1, bk 2)
-//	Puerto K: interrupts
+//	Puerto K: en k1 está el LED1
 
 //	LIBRERIAS
 #include <avr/io.h>
+#include <avr/interrupt.h>
 
 //	DEFINICIONES, ESTRUCTURAS y CONSTANTES
-const uint8_t DCHA = 0x01;		// DERECHA
+const uint8_t DCHA = 0x01;		// DERECHA                           //está bien?? salvo enables
 const uint8_t IZDA = 0x00;		// IZQUIERDA
 const uint8_t ON = 0x01;		// ENABLE ON
 const uint8_t OFF = 0x00;		// ENABLE OFF
 const uint8_t ACT = 0x01;		// BK ACTIVO (solo motor2)
 const uint8_t DEACT = 0x00;		// BK INACTIVO (solo motor2)
 
+
 typedef struct{
 	volatile uint8_t * port;
 	uint8_t enable;
 	uint8_t dir;
 	uint8_t bk;
-	uint8_t index; // Indica el bit que usa para su señal de enable
+	uint8_t index; // Indica el bit que usa para su señal de enable, el más bajo del grupo
 	//A lo mejor hay que añadir una variable de velocidad
 } motor;
 
@@ -45,12 +47,15 @@ uint8_t *swing = 0x00;
 
 //	FUNCIONES
 
+/*
 void delay(int ms){
 	int ciclos = ms * 2000;
 	for(int i = 0; i < ciclos; i++){
 		asm("nop");
 	}
 }
+
+*/
 
 void moveMotor(motor* M, uint8_t direccion){
 	// Esta funcion mueve en la direccion asignada un motor
@@ -122,6 +127,7 @@ void stopMotor(motor* M){
 	}
 }
 
+/*
 void swingDelay(){
 	//Esta es una version de la funcion de oscilacion usando delay
 	*swing = 0x01;
@@ -132,14 +138,38 @@ void swingDelay(){
 		delay(50);
 	}
 }
+*/
 
 void setup(void){
+	
+//LED	
+	#define setBit(P,B)    (P |= (0b00000001 << B))
+	#define clearBit(P,B)  (P &= (0b11111110 << B))
+	//hacer define que cambie un bit   #define changeBit(P,B) (P )
+	
+	//DDRK = 0xFF;             //OJO en config del puerto K poner el bit 1 para tenerlo como salida a 1
+	clearBit (PORTK,1);         //LED apagado al comienzo, entiendo que es activo por nivel alto, esto pone a 0 (apaga)
+				   //FALTA:cuando esté listo para lanzar poner setBit(K,1) PARA ENCENDER LED
+	
+	
+	//Int period timer2  para 0.1s para parpadeo en p.extra una vez lanzada bola; sin prescalado-Func normal-por overflow
+	cli();									
+	TCCR2A = 0x00; 
+	TCCR2B = 0x01; //sin prescalado 001
+	TIMSK2 = 0x01; 
+	//Int period timer3 para 1s? de swing centro-izq o izq-centro; sin prescalado-Func normalpor overflow
+	TCCR2A = 0x00; 					//FALTA: subrutina swing con num overflows calcular
+	TCCR2B = 0x01; //sin prescalado 001
+	TIMSK2 = 0x01; 
+	
+	sei();
+	
 	//Pone en marcha todos los motores hacia su posición de inicio.
 	//Esperar un tiempo
 	//Cuando todos se encuentren en su posicion original se carga la primera bola
 }
 
-
+/*
 void pruebaMotores(void){
 	moveMotor(&motor2,DCHA);
 	delay(2000);
@@ -154,17 +184,37 @@ void pruebaMotores(void){
 	moveMotor(&motor4,IZDA);
 	delay(2000);
 }
+*/
 
+void lanzamiento (){						//cuando esté listo para lanzar y pulse SW6 pasarle qué vble? 
 
-
-//	INTERRUPCIONE
-
-// Antirrebotes
-
-// Timer
-ISR(){
+		//motor2 activo brake para pararlo, enable 0 y DI da = no?
+setBit (K,1); //enciendo bit
+		//lanza, retira M4--M4 en otra direcc DI cambio
+	
 	
 }
+
+
+//	INTERRUPCIONES_Rutinas
+
+//externas
+ISR()
+
+// Timers, incluir antirreb si aplica
+//para parpadeo LED cada 0.1s
+	uint8_t P_extra_lanz = 0; 
+	#define OVERFLOWS_100_MS 13     //OJO!!!!! A 8Mhz, para 0.1 seg son 13 veces desvorde timer aprox
+	uint8_t overflowT2 = OVERFLOWS_100_MS;       
+	ISR(TIMER0_OVF_vect){
+		if (P_extra_lanz==1){   //vble que me diga que esta habilitado para lanzar en partida extra, sin hacer
+ 			--overflowT2;									
+			if(overflows == 0){
+			    //hacer MACRO change bit-----tipo PORTC = ~PINC;
+			overflowT2 = OVERFLOWS_100_MS ;  
+			}
+		}
+	}
 
 
 //	PROGRAMA PRINCIPAL
