@@ -21,12 +21,13 @@ const uint8_t ON = 0x01;		// ENABLE ON
 const uint8_t OFF = 0x00;		// ENABLE OFF
 const uint8_t ACT = 0x01;		// BK ACTIVO (solo motor2)
 const uint8_t DEACT = 0x00;		// BK INACTIVO (solo motor2)
-	
+
+//
 #define setBit(P,B)    (P |= (0b00000001 << B))
 #define clearBit(P,B)  (P &= (0b11111110 << B))
 
 //para parpadeo LED cada 0.1s
-uint8_t P_extra_lanz = 0; 
+uint8_t *P_extra = 0x00; 
 #define OVERFLOWS_100_MS 13     //OJO!!!!! A 8Mhz, para 0.1 seg son 13 veces desvorde timer aprox
 uint8_t overflowT2 = OVERFLOWS_100_MS; 
 
@@ -57,6 +58,7 @@ uint8_t *swing = 0x00;
 	
 	// Constante del delay
  #define DELAY 56
+
 
 //	FUNCIONES
 
@@ -172,8 +174,6 @@ void stopMotor(motor *M){//NOTA IMPORTANTE
 	 }
  }
 
-//	FUNCIONES
-
 void setup(void){
 	clearBit (PORTK,1);         //LED apagado al comienzo, entiendo que es activo por nivel alto, esto pone a 0 (apaga)
 				   //FALTA:cuando esté listo para lanzar poner setBit(K,1) PARA ENCENDER LED
@@ -203,17 +203,6 @@ void setup(void){
 }
 
 
-void lanzamiento (){						
-		//cuando esté listo para lanzar y pulse SW6 pasarle qué vble? 
-
-		//motor2 activo brake para pararlo, enable 0 y DI da = no?
-setBit (K,1); //enciendo bit
-		//lanza, retira M4--M4 en otra direcc DI cambio
-	
-	
-}
-
-
 //	INTERRUPCIONES_Rutinas
 
 // Timers, incluir antirreb si aplica
@@ -228,6 +217,7 @@ ISR(TIMER0_OVF_vect){
 	}
 }
 
+// SW6
 ISR(PCINT2_vect) {
 	PCMSK2 = 0x00;	
 	dynamicstop(&motor2);
@@ -236,6 +226,7 @@ ISR(PCINT2_vect) {
 	TIMSK1 = 0x01; //Habilito la interrupción 13.5sec por overflow
 	TCCR1B = 0x01;//Habilito la interrupción temporal con preescalado clk/1 de 16bits
 	
+	clearBit(&PORTK,1); // Apaga el LED
 }
 
 int cb1(){//3.5seg
