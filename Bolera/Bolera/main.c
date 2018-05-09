@@ -21,7 +21,14 @@ const uint8_t ON = 0x01;		// ENABLE ON
 const uint8_t OFF = 0x00;		// ENABLE OFF
 const uint8_t ACT = 0x01;		// BK ACTIVO (solo motor2)
 const uint8_t DEACT = 0x00;		// BK INACTIVO (solo motor2)
+	
+#define setBit(P,B)    (P |= (0b00000001 << B))
+#define clearBit(P,B)  (P &= (0b11111110 << B))
 
+//para parpadeo LED cada 0.1s
+uint8_t P_extra_lanz = 0; 
+#define OVERFLOWS_100_MS 13     //OJO!!!!! A 8Mhz, para 0.1 seg son 13 veces desvorde timer aprox
+uint8_t overflowT2 = OVERFLOWS_100_MS; 
 
 typedef struct{
 	volatile uint8_t * port;
@@ -29,15 +36,15 @@ typedef struct{
 	uint8_t dir;
 	uint8_t bk;
 	uint8_t index; // Indica el bit que usa para su señal de enable, el más bajo del grupo
-	//A lo mejor hay que añadir una variable de velocidad
+	int retardo; // Rellenar este campo con el retardo especifico de cada motor
 } motor;
 
 //	VARIABLES
-motor motor1 = {&PORTB, 0, 0, 0, 0};
-motor motor2 = {&PORTL, 0, 0, 0, 0};
-motor motor3 = {&PORTB, 0, 0, 0, 2};
-motor motor4 = {&PORTB, 0, 0, 0, 4};
-motor motor5 = {&PORTB, 0, 0, 0, 6};
+motor motor1 = {&PORTB, 0, 0, 0, 0, 0};
+motor motor2 = {&PORTL, 0, 0, 0, 0, 0};
+motor motor3 = {&PORTB, 0, 0, 0, 2, 0};
+motor motor4 = {&PORTB, 0, 0, 0, 4, 0};
+motor motor5 = {&PORTB, 0, 0, 0, 6, 0};
 
 	// Vector de direcciones a los motores
 motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
@@ -53,7 +60,6 @@ uint8_t *swing = 0x00;
 
 //	FUNCIONES
 
-
 void delay(int ms){
 	for(int j = 0; j < ms; j++){
 		for(i = 0; i < DELAY;){
@@ -65,8 +71,8 @@ void delay(int ms){
 
 void changeBit(uint8_t * puerto, uint8_t bit){
 	//sintaxis:	changeBit( &POTRB , 2 )
-	uint8_t p_aux = 0x00;
-	uint8_t mask = 0x01;
+	uint8_t p_aux = 0x00;	// Trabaja con los valores que hay en el puerto
+	uint8_t mask = 0x01;	// Mascara del bit a cambiar
 	
 	mask = mask << bit;
 	
@@ -74,7 +80,6 @@ void changeBit(uint8_t * puerto, uint8_t bit){
 	p_aux &= mask;
 	
 	*puerto &= ~mask;
-	
 	*puerto |= p_aux;
 }
 
@@ -168,41 +173,8 @@ void dynamicstop(motor *M){//NOTA IMPORTANTE
  }
 
 //	FUNCIONES
-void setup(void){
-	//Pone en marcha todos los motores hacia su posición de inicio.
-	//Esperar un tiempo
-	//Cuando todos se encuentren en su posicion original se carga la primera bola
-	
-	DDRB=0xff; //todos salidas motor 1, motor 3, motor 4, motor 5 enable y dirección
-	DDRK=0b00000010; //PK1 salida Led, el resto entrada interrupciones sensores opticos
-	DDRL=0b00001011; //PL0,PL1, PL3 salidas para el motor 2
-	DDRD=0xff; //todos salida para el display
-	
-	//Esperamos un tiempo a que todos los SW estén pulsados.
-}
-
-
-/*
-void swingDelay(){
-	//Esta es una version de la funcion de oscilacion usando delay
-	*swing = 0x01;
-	while(*swing == 0x01){
-		moveMotor(&motor2,!&motor2->dir);
-		delay(2000);
-		stopMotor(&motor2);
-		delay(50);
-	}
-}
-*/
 
 void setup(void){
-	
-//LED	
-	#define setBit(P,B)    (P |= (0b00000001 << B))
-	#define clearBit(P,B)  (P &= (0b11111110 << B))
-	//hacer define que cambie un bit   #define changeBit(P,B) (P )
-	
-	//DDRK = 0xFF;             //OJO en config del puerto K poner el bit 1 para tenerlo como salida a 1
 	clearBit (PORTK,1);         //LED apagado al comienzo, entiendo que es activo por nivel alto, esto pone a 0 (apaga)
 				   //FALTA:cuando esté listo para lanzar poner setBit(K,1) PARA ENCENDER LED
 	
@@ -222,6 +194,12 @@ void setup(void){
 	//Pone en marcha todos los motores hacia su posición de inicio.
 	//Esperar un tiempo
 	//Cuando todos se encuentren en su posicion original se carga la primera bola
+	
+	DDRB=0xff; //todos salidas motor 1, motor 3, motor 4, motor 5 enable y dirección
+	DDRK=0b00000010; //PK1 salida Led, el resto entrada interrupciones sensores opticos
+	DDRL=0b00000111; //PL0,PL1, PL3 salidas para el motor 2
+	DDRD=0xff; //todos salida para el display
+	
 }
 
 
@@ -238,23 +216,17 @@ setBit (K,1); //enciendo bit
 
 //	INTERRUPCIONES_Rutinas
 
-//externas
-ISR()
-
 // Timers, incluir antirreb si aplica
-//para parpadeo LED cada 0.1s
-	uint8_t P_extra_lanz = 0; 
-	#define OVERFLOWS_100_MS 13     //OJO!!!!! A 8Mhz, para 0.1 seg son 13 veces desvorde timer aprox
-	uint8_t overflowT2 = OVERFLOWS_100_MS;       
-	ISR(TIMER0_OVF_vect){
-		if (P_extra_lanz==1){   //vble que me diga que esta habilitado para lanzar en partida extra, sin hacer
- 			--overflowT2;									
-			if(overflows == 0){
-			    //hacer MACRO change bit-----tipo PORTC = ~PINC;
+      
+ISR(TIMER0_OVF_vect){
+	if (P_extra_lanz==1){   //vble que me diga que esta habilitado para lanzar en partida extra, sin hacer
+		--overflowT2;									
+		if(overflows == 0){
+			changeBit(&PORTK,1);
 			overflowT2 = OVERFLOWS_100_MS ;  
-			}
 		}
 	}
+}
 
 ISR(PCINT2_vect) {
 	PCMSK2 = 0x00;	
