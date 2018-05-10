@@ -18,8 +18,8 @@
 #define setBit(P,B)    (P |= (0b00000001 << B))
 #define clearBit(P,B)  (P &= (0b11111110 << B))  //hace falta función así el clearBit no va, change bit en función
 
-#define OVERFLOWS_100_MS 13     //8Mhz, para 0.1 seg son 13 veces desvorde timer aprox
-#define OVERFLOWS_11000_MS 1375   //REVISAR PROB A 2MHZ!!!!!
+#define OVERFLOWS_100_MS 13       //Timer 2 8bits,8Mhz, para 0.1 seg parpadeo LED son 13 veces desborde timer aprox
+#define OVERFLOWS_11000_MS 1343   //Timer 1 16bits,8Mhz, elevar SW5 tras lanzamiento SW4 soltar, X veces desborde timer aprox
 
 // Constante del delay
  #define DELAY 56
