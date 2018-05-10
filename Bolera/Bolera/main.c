@@ -5,6 +5,9 @@
  * Author : EquipoK
  */ 
 
+
+//OJO PINES IBRA SI LOS HA CAMBIADO!!!
+
 // Puerto J1:
 //	Puerto B: motores 1, 3, 4, 5 (bajo: enable, alto: dir)
 //	Puerto L: motor 2 (enable 0, dir 1, bk 2)
@@ -67,6 +70,103 @@ uint8_t *swing = 0x00;
 	
 
 //	FUNCIONES
+
+void setup(void){
+	// FUNCION setBit    //LED apagado al comienzo, entiendo que es activo por nivel alto, esto pone a 0 (apaga)
+				   //FALTA:cuando esté listo para lanzar poner setBit(K,1) PARA ENCENDER LED
+	
+	
+	//Todos los timers Func normal y por overflow
+	//El 0 para;el 2 para; el 1 para; el 3 para;el 4 para; el 5 para;
+	cli();	
+	
+	TCCR0A = 0x00; 
+	TCCR0B = 0x01; //sin prescalado 001;  //ver si hace falta al mirar tiempos, ver si está a 8MHZ
+	TIMSK2 = 0x01;
+	
+	TCCR2A = 0x00; 
+	TCCR2B = 0x01; //sin prescalado 001		//ver num overflows JulioJuan
+	TIMSK2 = 0x01; 
+
+	//Timer 1 CrisIbra lanz-elev; timer3 para swing para 1s? de swing centro-izq o izq-centro; 
+	TCCR1A = 0x00; 					//falta mirar overflows a 8Mhz
+	TCCR1B = 0x01; //sin prescalado 001
+	TIMSK1 = 0x01; 
+	
+	sei();
+	
+	//Pone en marcha todos los motores hacia su posición de inicio.
+	//Esperar un tiempo
+	//Cuando todos se encuentren en su posicion original se carga la primera bola
+	
+	DDRB=0xff; //todos salidas motor 1, motor 3, motor 4, motor 5 enable y dirección
+	DDRK=0b00000010; //PK1 salida Led, el resto entrada interrupciones sensores opticos
+	DDRL=0b00000111; //PL0,PL1, PL2 salidas para el motor 2
+	DDRD=0xff; //todos salida para el display
+	
+}
+
+void swing(){
+	cli(); //IMPORTANTE tiene sentido?
+	PCMSK2 = 0x01; //Hemos activado Interrupción PCINT16 del PORTK
+	PCICR= 0b00000100;//habilitadas interrupciones grupo 2 (de la 16 a la 23)
+	//PCIFR=0b00000100;// habilito la bandera 
+	//Hemos habilitado el grupo de interrupciones del PCINT16 al PCINT23
+	sei();//habilitar interrupciones globales
+	
+	// Encender LED
+	//setBit(PORTK,1);
+	
+	moveMotor(&motor2,DCHA);
+	delay(3000);
+	stopMotor(&motor2);
+	delay(50);
+	moveMotor(&motor2,IZDA);
+	delay(3000);
+	stopMotor(&motor2);
+	delay(50);
+}
+
+void cargarbola(){
+	if(PINL & 0b00100000){
+		retardo=moveMotor(&motor2, IZDA)*0.5; //Lejos de recibir bola=IZDA
+		delay(retardo);
+	}
+	if(PINL & 0b00000100){
+		retardo=moveMotor(&motor1, DCHA);
+		delay(10000);
+	}
+		retardo=cb1();
+		delay(10000);
+		
+		retardo=cb2();
+		delay(10000);
+		
+		retardo=cb3();
+		delay(10000);
+		
+		retardo=cb4();
+		delay(10000);
+		
+		retardo=cb5();
+		delay(6000); //Aprox para poner en la mitad
+		stopMotor(&motor2);
+	
+		swi = 1;
+}
+
+void inicializacion(){
+	moveMotor(&motor5, IZDA); //Bajar=IZDA
+	moveMotor(&motor4, IZDA); //Abrir=IZDA
+	moveMotor(&motor1,DCHA);
+	delay(10000);
+	moveMotor(&motor2,DCHA);
+	delay(10000);
+	moveMotor(&motor1, IZDA); //recibo bola=DCHA
+	delay(motor5.retardo); //Quiero tiempo suficiente para bajar motor5 y cargar bola en elevador de carga
+	cargarbola();
+}
+
 
 void delay(int ms){
 	for(int j = 0; j < ms; j++){
@@ -168,45 +268,70 @@ void stopMotor(motor *M){//NOTA IMPORTANTE
 	 }
  }
 
-void setup(void){
-	clearBit (PORTK,1);         //LED apagado al comienzo, entiendo que es activo por nivel alto, esto pone a 0 (apaga)
-				   //FALTA:cuando esté listo para lanzar poner setBit(K,1) PARA ENCENDER LED
-	
-	
-	//Todos los timers Func normal y por overflow
-	//El 0 para;el 2 para; el 1 para; el 3 para;el 4 para; el 5 para;
-	cli();	
-	
-	TCCR0A = 0x00; 
-	TCCR0B = 0x01; //sin prescalado 001;  //ver si hace falta al mirar tiempos, ver si está a 8MHZ
-	TIMSK2 = 0x01;
-	
-	TCCR2A = 0x00; 
-	TCCR2B = 0x01; //sin prescalado 001		//ver num overflows JulioJuan
-	TIMSK2 = 0x01; 
 
-	//Int period timer3 para 1s? de swing centro-izq o izq-centro; sin prescalado-Func normalpor overflow
-	TCCR1A = 0x00; 					
-	TCCR1B = 0x01; //sin prescalado 001
-	TIMSK1 = 0x01; 
+
+void swing(){
+	cli(); //IMPORTANTE tiene sentido?
+	PCMSK2 = 0x01; //Hemos activado Interrupción PCINT16 del PORTK
+	PCICR= 0b00000100;//habilitadas interrupciones grupo 2 (de la 16 a la 23)
+	//PCIFR=0b00000100;// habilito la bandera 
+	//Hemos habilitado el grupo de interrupciones del PCINT16 al PCINT23
+	sei();//habilitar interrupciones globales
 	
-	TCCR3A = 0x00; 					//FALTA: subrutina swing con num overflows calcular 8MHZ
-	TCCR3B = 0x01; //sin prescalado 001
-	TIMSK3 = 0x01;
+	// Encender LED
+	//setBit(PORTK,1);
 	
-	sei();
-	
-	//Pone en marcha todos los motores hacia su posición de inicio.
-	//Esperar un tiempo
-	//Cuando todos se encuentren en su posicion original se carga la primera bola
-	
-	DDRB=0xff; //todos salidas motor 1, motor 3, motor 4, motor 5 enable y dirección
-	DDRK=0b00000010; //PK1 salida Led, el resto entrada interrupciones sensores opticos
-	DDRL=0b00000111; //PL0,PL1, PL2 salidas para el motor 2
-	DDRD=0xff; //todos salida para el display
-	
+	moveMotor(&motor2,DCHA);
+	delay(3000);
+	stopMotor(&motor2);
+	delay(50);
+	moveMotor(&motor2,IZDA);
+	delay(3000);
+	stopMotor(&motor2);
+	delay(50);
 }
 
+void cargarbola(){
+	if(PINL & 0b00100000){
+		retardo=moveMotor(&motor2, IZDA)*0.5; //Lejos de recibir bola=IZDA
+		delay(retardo);
+	}
+	if(PINL & 0b00000100){
+		retardo=moveMotor(&motor1, DCHA);
+		delay(10000);
+	}
+		retardo=cb1();
+		delay(10000);
+		
+		retardo=cb2();
+		delay(10000);
+		
+		retardo=cb3();
+		delay(10000);
+		
+		retardo=cb4();
+		delay(10000);
+		
+		retardo=cb5();
+		delay(6000); //Aprox para poner en la mitad
+		stopMotor(&motor2);
+	
+		swi = 1;
+}
+
+void inicializacion(){
+	moveMotor(&motor5, IZDA); //Bajar=IZDA
+	moveMotor(&motor4, IZDA); //Abrir=IZDA
+	moveMotor(&motor1,DCHA);
+	delay(10000);
+	moveMotor(&motor2,DCHA);
+	delay(10000);
+	moveMotor(&motor1, IZDA); //recibo bola=DCHA
+	delay(motor5.retardo); //Quiero tiempo suficiente para bajar motor5 y cargar bola en elevador de carga
+	cargarbola();
+}
+
+	
 //funciones de movimiento de los motores para cada parte	
 int cb1(){//3.5seg
 	moveMotor(&motor2, DCHA); //Quiero ponerlo listo para recibir bola
@@ -305,69 +430,8 @@ ISR(TIMER1_OVF_vect){
 	
 	TCCR1B =0x00;//Deshabilito la interrupcion temporal
 }
-
-void swing(){
-	cli(); //IMPORTANTE tiene sentido?
-	PCMSK2 = 0x01; //Hemos activado Interrupción PCINT16 del PORTK
-	PCICR= 0b00000100;//habilitadas interrupciones grupo 2 (de la 16 a la 23)
-	//PCIFR=0b00000100;// habilito la bandera 
-	//Hemos habilitado el grupo de interrupciones del PCINT16 al PCINT23
-	sei();//habilitar interrupciones globales
 	
-	// Encender LED
-	//setBit(PORTK,1);
-	
-	moveMotor(&motor2,DCHA);
-	delay(3000);
-	stopMotor(&motor2);
-	delay(50);
-	moveMotor(&motor2,IZDA);
-	delay(3000);
-	stopMotor(&motor2);
-	delay(50);
-}
-
-void cargarbola(){
-	if(PINL & 0b00100000){
-		retardo=moveMotor(&motor2, IZDA)*0.5; //Lejos de recibir bola=IZDA
-		delay(retardo);
-	}
-	if(PINL & 0b00000100){
-		retardo=moveMotor(&motor1, DCHA);
-		delay(10000);
-	}
-		retardo=cb1();
-		delay(10000);
-		
-		retardo=cb2();
-		delay(10000);
-		
-		retardo=cb3();
-		delay(10000);
-		
-		retardo=cb4();
-		delay(10000);
-		
-		retardo=cb5();
-		delay(6000); //Aprox para poner en la mitad
-		stopMotor(&motor2);
-	
-		swi = 1;
-}
-
-void inicializacion(){
-	moveMotor(&motor5, IZDA); //Bajar=IZDA
-	moveMotor(&motor4, IZDA); //Abrir=IZDA
-	moveMotor(&motor1,DCHA);
-	delay(10000);
-	moveMotor(&motor2,DCHA);
-	delay(10000);
-	moveMotor(&motor1, IZDA); //recibo bola=DCHA
-	delay(motor5.retardo); //Quiero tiempo suficiente para bajar motor5 y cargar bola en elevador de carga
-	cargarbola();
-}
-
-	
+//El timer 3 está libre, se puede usar para antirrebotes del SW6 pulsador
 	
 //	PROGRAMA PRINCIPAL
 int main(void){
