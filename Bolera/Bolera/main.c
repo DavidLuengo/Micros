@@ -182,11 +182,11 @@ void setup(void){
 	TIMSK2 = 0x01;
 	
 	TCCR2A = 0x00; 
-	TCCR2B = 0x01; //sin prescalado 001		
+	TCCR2B = 0x01; //sin prescalado 001		//ver num overflows JulioJuan
 	TIMSK2 = 0x01; 
 
 	//Int period timer3 para 1s? de swing centro-izq o izq-centro; sin prescalado-Func normalpor overflow
-	TCCR1A = 0x00; 					//overflows calcular 8MHZ
+	TCCR1A = 0x00; 					
 	TCCR1B = 0x01; //sin prescalado 001
 	TIMSK1 = 0x01; 
 	
