@@ -14,7 +14,19 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
+//          MACROS
+#define setBit(P,B)    (P |= (0b00000001 << B))
+#define clearBit(P,B)  (P &= (0b11111110 << B))  //hace falta función así el clearBit no va, change bit en función
+
+#define OVERFLOWS_100_MS 13     //8Mhz, para 0.1 seg son 13 veces desvorde timer aprox
+#define OVERFLOWS_11000_MS 1375   //REVISAR PROB A 2MHZ!!!!!
+
+// Constante del delay
+ #define DELAY 56
+
+
 //	DEFINICIONES, ESTRUCTURAS y CONSTANTES
+	//estas son para los campos de la estructura motor, no para los puertos
 const uint8_t DCHA = 0x01;		// DERECHA
 const uint8_t IZDA = 0x00;		// IZQUIERDA
 const uint8_t ON = 0x01;		// ENABLE ON
@@ -22,23 +34,15 @@ const uint8_t OFF = 0x00;		// ENABLE OFF
 const uint8_t ACT = 0x01;		// BK ACTIVO (solo motor2)
 const uint8_t DEACT = 0x00;		// BK INACTIVO (solo motor2)
 
-//
-#define setBit(P,B)    (P |= (0b00000001 << B))
-#define clearBit(P,B)  (P &= (0b11111110 << B))
-
-//para parpadeo LED cada 0.1s
-uint8_t *P_extra = 0x00; 
-#define OVERFLOWS_100_MS 13     //OJO!!!!! A 8Mhz, para 0.1 seg son 13 veces desvorde timer aprox
-uint8_t overflowT2 = OVERFLOWS_100_MS; 
-
 typedef struct{
 	volatile uint8_t * port;
 	uint8_t enable;
 	uint8_t dir;
-	uint8_t bk;
+	uint8_t bk;	//solo motor 2
 	uint8_t index; // Indica el bit que usa para su señal de enable, el más bajo del grupo
 	int retardo; // Rellenar este campo con el retardo especifico de cada motor
 } motor;
+
 
 //	VARIABLES
 motor motor1 = {&PORTB, 0, 0, 0, 0, 10000};
@@ -46,6 +50,11 @@ motor motor2 = {&PORTL, 0, 0, 0, 0, 10000};
 motor motor3 = {&PORTB, 0, 0, 0, 2, 10000};
 motor motor4 = {&PORTB, 0, 0, 0, 4, 10000};
 motor motor5 = {&PORTB, 0, 0, 0, 6, 10000};
+
+	//para parpadeo LED cada 0.1s
+uint8_t *P_extra = 0x00;  //valor de a lo que apunta puntero a 0, el puntero es para que se pueda acceder a la vble 
+			 //desde cualquier función, si es vble solo en esa función
+uint8_t overflowT2 = OVERFLOWS_100_MS; 
 
 	// Vector de direcciones a los motores
 motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
@@ -56,9 +65,6 @@ uint8_t *swing = 0x00;
 	// Tiempo de retardo
  int retardo=0;
 	
-	// Constante del delay
- #define DELAY 56
-
 
 //	FUNCIONES
 
@@ -71,7 +77,7 @@ void delay(int ms){
 }
 
 
-void changeBit(uint8_t * puerto, uint8_t bit){
+void changeBit(uint8_t * puerto, uint8_t bit){				//cambia el valor de cierto bit del puerto que sea 
 	//sintaxis:	changeBit( &POTRB , 2 )
 	uint8_t p_aux = 0x00;	// Trabaja con los valores que hay en el puerto
 	uint8_t mask = 0x01;	// Mascara del bit a cambiar
@@ -167,15 +173,26 @@ void setup(void){
 				   //FALTA:cuando esté listo para lanzar poner setBit(K,1) PARA ENCENDER LED
 	
 	
-	//Int period timer2  para 0.1s para parpadeo en p.extra una vez lanzada bola; sin prescalado-Func normal-por overflow
-	cli();									
+	//Todos los timers Func normal y por overflow
+	//El 0 para;el 2 para; el 1 para; el 3 para;el 4 para; el 5 para;
+	cli();	
+	
+	TCCR0A = 0x00; 
+	TCCR0B = 0x01; //sin prescalado 001;  //ver si hace falta al mirar tiempos, ver si está a 8MHZ
+	TIMSK2 = 0x01;
+	
 	TCCR2A = 0x00; 
-	TCCR2B = 0x01; //sin prescalado 001
+	TCCR2B = 0x01; //sin prescalado 001		
 	TIMSK2 = 0x01; 
+
 	//Int period timer3 para 1s? de swing centro-izq o izq-centro; sin prescalado-Func normalpor overflow
-	TCCR2A = 0x00; 					//FALTA: subrutina swing con num overflows calcular
-	TCCR2B = 0x01; //sin prescalado 001
-	TIMSK2 = 0x01; 
+	TCCR1A = 0x00; 					//overflows calcular 8MHZ
+	TCCR1B = 0x01; //sin prescalado 001
+	TIMSK1 = 0x01; 
+	
+	TCCR3A = 0x00; 					//FALTA: subrutina swing con num overflows calcular 8MHZ
+	TCCR3B = 0x01; //sin prescalado 001
+	TIMSK3 = 0x01;
 	
 	sei();
 	
@@ -190,33 +207,7 @@ void setup(void){
 	
 }
 
-
-//	INTERRUPCIONES_Rutinas
-
-// Timers, incluir antirreb si aplica
-      
-ISR(TIMER0_OVF_vect){
-	if (P_extra_lanz==1){   //vble que me diga que esta habilitado para lanzar en partida extra, sin hacer
-		--overflowT2;									
-		if(overflows == 0){
-			changeBit(&PORTK,1);
-			overflowT2 = OVERFLOWS_100_MS ;  
-		}
-	}
-}
-
-// SW6
-ISR(PCINT2_vect) {
-	PCMSK2 = 0x00;	
-	stopMotor(&motor2);
-	moveMotor(&motor4, IZDA);//abre
-	delay(motor4.retardo);
-	TIMSK1 = 0x01; //Habilito la interrupción 13.5sec por overflow
-	TCCR1B = 0x01;//Habilito la interrupción temporal con preescalado clk/1 de 16bits
-	
-	clearBit(&PORTK,1); // Apaga el LED
-}
-
+//funciones de movimiento de los motores para cada parte	
 int cb1(){//3.5seg
 	moveMotor(&motor2, DCHA); //Quiero ponerlo listo para recibir bola
 	moveMotor(&motor3, DCHA); //avanza adelante=DCHA
@@ -248,9 +239,39 @@ int cb5(){//1seg
 	//dynamicstop(&motor1);
 	moveMotor(&motor2, IZDA); //IMPORTANTE no se puede mover el motor 1 y motor 2 al mismo tiempo
 	return 250;
+}	
+	
+
+//	INTERRUPCIONES_Rutinas
+
+// TIMERS, parece que no hace falta antirrebotes para el SW6
+      
+ISR(TIMER2_OVF_vect){				//Int period timer2  para 0.1s para parpadeo en p.extra una vez lanzada bola
+	if (P_extra_lanz==1){   //vble que me diga que esta habilitado para lanzar en partida extra, definida pero no hecho código
+		--overflowT2;									
+		if(overflowT2 == 0){
+			changeBit(&PORTK,1);
+			overflowT2 = OVERFLOWS_100_MS ;  
+		}
+	}
 }
 
-#define OVERFLOWS_11000_MS 1375
+//EXTERNAS
+// SW6 pulsador
+ISR(PCINT2_vect) {
+	PCMSK2 = 0x00;	
+	stopMotor(&motor2);
+	moveMotor(&motor4, IZDA);//abre
+	delay(motor4.retardo);
+	TIMSK1 = 0x01; //Habilito la interrupción 13.5sec por overflow
+	TCCR1B = 0x01;//Habilito la interrupción temporal con preescalado clk/1 de 16bits
+	
+	clearBit(&PORTK,1); // Apaga el LED
+}
+
+
+
+
 int overflowssw6 = OVERFLOWS_11000_MS;
 
 ISR(TIMER1_OVF_vect){
@@ -346,6 +367,8 @@ void inicializacion(){
 	cargarbola();
 }
 
+	
+	
 //	PROGRAMA PRINCIPAL
 int main(void){
 	setup();
