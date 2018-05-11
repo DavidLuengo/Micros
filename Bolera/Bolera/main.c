@@ -18,7 +18,7 @@
 
 //          MACROS
 #define setBit(P,B)    (P |= (0b00000001 << B))
-#define clearBit(P,B)  (P &= (0b11111110 << B))  //hace falta función así el clearBit no va, change bit en función
+//funciones para cambiar bit y para limpiar bit, esto último no va como puse en otra macro 
 
 #define OVERFLOWS_100_MS 13       //Timer 2 8bits,8Mhz, para 0.1 seg parpadeo LED son 13 veces desborde timer aprox
 #define OVERFLOWS_11000_MS 1343   //Timer 1 16bits,8Mhz, elevar SW5 tras lanzamiento SW4 soltar, X veces desborde timer aprox
@@ -92,17 +92,23 @@ void setup(void){
 	cli();	
 	
 	TCCR0A = 0x00; 
-	TCCR0B = 0x01; //sin prescalado 001;  //ver si hace falta al mirar tiempos, ver si está a 8MHZ
+	TCCR0B = 0x01; //sin prescalado 001;  //ver num overflows JulioJuan
 	TIMSK2 = 0x01;
 	
+	//Timer 2 para parpadeo Led en partida extra cada 0.1s cuando listo para lanzar
 	TCCR2A = 0x00; 
-	TCCR2B = 0x01; //sin prescalado 001		//ver num overflows JulioJuan
+	TCCR2B = 0x01; //sin prescalado 001		
 	TIMSK2 = 0x01; 
 
 	//Timer 1 CrisIbra lanz-elev; timer3 para swing para 1s? de swing centro-izq o izq-centro; 
 	TCCR1A = 0x00; 					//falta mirar overflows a 8Mhz
 	TCCR1B = 0x01; //sin prescalado 001
 	TIMSK1 = 0x01; 
+	
+	//Timer 3 DavidTito Antirrebotes para SW2 posic medio
+	TCCR3A = 0x00; 					//falta mirar overflows a 8Mhz y hacer subrutina
+	TCCR3B = 0x01; //sin prescalado 001
+	TIMSK3 = 0x01; 
 	
 	sei();
 	
@@ -325,9 +331,9 @@ void swing(){
 		delay(50);
 }
 
-
+////////////////////////////////////////////////////////////////////////////////////////////////
 //	INTERRUPCIONES (Rutinas)
-//TIMERS, parece que no hace falta antirrebotes para el SW6 pero está libre el Timer5
+//TIMERS
 int overflowssw6 = OVERFLOWS_11000_MS;
 
 ISR(TIMER1_OVF_vect){
@@ -337,26 +343,33 @@ ISR(TIMER1_OVF_vect){
 		cargarbola();
 		moveMotor(&motor5,IZDA);}
 		
-	
 	TCCR1B = 0x00;//Deshabilito la interrupcion temporal
 	
 }
 
 ISR(TIMER2_OVF_vect){				//Int period timer2  para 0.1s para parpadeo en p.extra una vez lanzada bola
 	if (P_extra_lanz==1){   //vble que me diga que esta habilitado para lanzar en partida extra, definida pero no hecho código
-		--overflowT2;									
-		if(overflowT2 == 0){
-			changeBit(&PORTK,1);
-			overflowT2 = OVERFLOWS_100_MS ;  
+	--overflowT2;		//Gestión vector int en c pero dentro subrutina se podría llamar a func hecha en asm!!						
+	if(overflowT2 == 0){
+		changeBit(&PORTK,1);
+		overflowT2 = OVERFLOWS_100_MS ;  
 		}
 	}
+}
+
+//Timer 3 DavidTito Antirrebotes para SW2 posic medio
+ISR(TIMER3_OVF_vect){				
+	  //esto está sin hacer solo copy paste, cambiar
+			--overflowT2;									
+			overflowT2 = OVERFLOWS_100_MS ; 
 }
 
 //EXTERNAS
 //Interrupcion SW6
 //distinguir puntos de partida: inicio o dispario en swing
-//OJO: PCINT2 lo usan JulioJuan para SO de los bolos!! ver conflictos con su parte 
+//OJO: PCINT2 lo usan JulioJuan para SO de los bolos, consultar bandera corresp a este
 ISR(PCINT2_vect) {
+	//apagar LED sin hacer!!!
 	PCMSK2 = 0x00;	
 	stopMotor(&motor2);
 	moveMotor(&motor4, IZDA);//abre
@@ -365,8 +378,10 @@ ISR(PCINT2_vect) {
 	TIMSK1 = 0x01; //Habilito la interrupción 13.5sec por overflow
 	TCCR1B = 0x01;//Habilito la interrupción temporal con preescalado clk/1 de 16bits
 	
+	
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
