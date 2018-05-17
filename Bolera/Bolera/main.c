@@ -3,9 +3,9 @@ Grupo K
  */ 
 
 
-// Puerto J1:
-//	Puerto B: motores 1, 3, 4, 5 (bajo: enable, alto: dir)
-//	Puerto L: motor 2 (enable 0, dir 1, bk 2)
+// Conector MOLASE J1:
+//	Puerto B: motor 2 (enable 0, dir 1, bk 2)
+//	Puerto L: motores 1, 3, 4, 5 (bajo: enable, alto: dir); intercambiamos B y L porque necesitábamos un pin para interrupción
 //	Puerto K: interrupts, k1 es el LED
 
 //	LIBRERIAS
@@ -55,11 +55,11 @@ typedef struct{
 } motor;
 
 //	VARIABLES
-motor motor1 = {&PORTB, 0, 0, 0, 0, 1000};
-motor motor2 = {&PORTL, 0, 0, 0, 0, 1000};
-motor motor3 = {&PORTB, 0, 0, 0, 2, 2334};
-motor motor4 = {&PORTB, 0, 0, 0, 4, 667};
-motor motor5 = {&PORTB, 0, 0, 0, 6, 2667};
+motor motor1 = {&PORTL, 0, 0, 0, 0, 1000};
+motor motor2 = {&PORTB, 0, 0, 0, 0, 1000};
+motor motor3 = {&PORTL, 0, 0, 0, 2, 2334};
+motor motor4 = {&PORTL, 0, 0, 0, 4, 667};
+motor motor5 = {&PORTL, 0, 0, 0, 6, 2667};
 
 //para parpadeo LED cada 0.1s
 uint8_t *P_extra = 0x00;  //valor de a lo que apunta puntero a 0, el puntero es para que se pueda acceder a la vble 
@@ -286,7 +286,7 @@ ISR(PCINT2_vect) {
 }
 
 // Interruocion SW2
-ISR(){
+ISR(//poner el 	que sea){
 	
 	
 	if(*cont_SW2 == 0x00){
