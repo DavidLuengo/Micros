@@ -312,13 +312,15 @@ void cargarbola(){
 
 void swing(){
 	cli(); //IMPORTANTE tiene sentido?
+	// SW6
 	PCMSK2 = 0x01; //Hemos activado Interrupción PCINT16 del PORTK
 	PCICR= 0b00000100;//habilitadas interrupciones grupo 2 (de la 16 a la 23)
-	//PCIFR=0b00000100;// habilito la bandera 
-	//Hemos habilitado el grupo de interrupciones del PCINT16 al PCINT23
+	// SW2
+	
 	sei();//habilitar interrupciones globales
 	
 	// Encender LED
+	/*
 	setBit(PORTK,1);
 	
 	    moveMotor(&motor2,DCHA);
@@ -329,7 +331,21 @@ void swing(){
 		delay(3000);
 		stopMotor(&motor2);
 		delay(50);
+		*/
+	// Funcionamiento:
+	// 1) Avanza hacia la izda
+	// 2) Toca SW2_medio => Cont++
+	// 3) Toca SW2_izda => Cont++
+	// 4) A partir de aqui, siempre que se detecte un SW2
+	//	- Se deeshabilita SW2
+	//	- Se para el motor y se espera un tiempo para el frenado
+	//	- Se pone en marcha en otro sentido
+	//	- Despues de un tiempo suficiente se habilita SW2
+	// 5) Cuando se pulsa SW6, se reinician los valores de swing()
+	
+	
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //	INTERRUPCIONES (Rutinas)
