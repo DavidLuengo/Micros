@@ -1,8 +1,5 @@
 /*
- * 08.05.2018 Bolera.c
- *
- * Created: 08/05/2018 0:25:15
- * Author : Hibrahim
+Grupo K
  */ 
 
 
@@ -20,8 +17,10 @@
 #define setBit(P,B)    (P |= (0b00000001 << B))
 //funciones para cambiar bit y para limpiar bit, esto último no va como puse en otra macro 
 
-#define OVERFLOWS_100_MS 13       //Timer 2 8bits,8Mhz, para 0.1 seg parpadeo LED son 13 veces desborde timer aprox
+#define OVERFLOWS_100_MS 3125       //Timer 2 8bits,8Mhz, para 0.1 seg parpadeo LED son 13 veces desborde timer aprox
 #define OVERFLOWS_11000_MS 1343   //Timer 1 16bits,8Mhz, elevar SW5 tras lanzamiento SW4 soltar, X veces desborde timer aprox
+//poner defines para el resto de timers tenerlos aquí
+
 // Constante del delay
 #define DELAY 56
 
