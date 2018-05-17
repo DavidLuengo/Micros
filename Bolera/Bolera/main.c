@@ -9,12 +9,21 @@
 // Puerto J1:
 //	Puerto B: motores 1, 3, 4, 5 (bajo: enable, alto: dir)
 //	Puerto L: motor 2 (enable 0, dir 1, bk 2)
-//	Puerto K: interrupts
+//	Puerto K: interrupts, k1 es el LED
 
 //	LIBRERIAS
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <stdio.h>
+
+//          MACROS
+#define setBit(P,B)    (P |= (0b00000001 << B))
+//funciones para cambiar bit y para limpiar bit, esto último no va como puse en otra macro 
+
+#define OVERFLOWS_100_MS 13       //Timer 2 8bits,8Mhz, para 0.1 seg parpadeo LED son 13 veces desborde timer aprox
+#define OVERFLOWS_11000_MS 1343   //Timer 1 16bits,8Mhz, elevar SW5 tras lanzamiento SW4 soltar, X veces desborde timer aprox
+// Constante del delay
+#define DELAY 56
 
 //	DEFINICIONES, ESTRUCTURAS y CONSTANTES
 const uint8_t DCHA = 0x01;		// DERECHA
@@ -53,19 +62,74 @@ motor motor3 = {&PORTB, 0, 0, 0, 2, 2334};
 motor motor4 = {&PORTB, 0, 0, 0, 4, 667};
 motor motor5 = {&PORTB, 0, 0, 0, 6, 2667};
 
+//para parpadeo LED cada 0.1s
+uint8_t *P_extra = 0x00;  //valor de a lo que apunta puntero a 0, el puntero es para que se pueda acceder a la vble 
+			 //desde cualquier función, si es vble solo en esa función sería local
+uint8_t overflowT2 = OVERFLOWS_100_MS; 
+
 	// Vector de direcciones a los motores
 motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
 
 #define DELAY 56
 
+
+//	FUNCIONES
+void setup(void){
+	//Pone en marcha todos los motores hacia su posición de inicio.
+	//Esperar un tiempo
+	//Cuando todos se encuentren en su posicion original se carga la primera bola
+
+	
+	DDRB=0xff;			//todos salidas motor 1, motor 3, motor 4, motor 5 enable y dirección
+	DDRK=0b00000010;	//PK1 salida Led, el resto entrada interrupciones sensores opticos
+	DDRL=0b00000111;	//PL0,PL1, PL2 salidas para el motor 2
+						//PL3 => SW1, PL4 => SW3, PL5 => SW2, PL6 => SW5, PL7 => SW4
+	DDRD=0xff;			//todos salida para el display
+	
+	//LED apagado al comienzo, entiendo que es activo por nivel alto
+	PORTK &=11111101;
+	
+	
+	//Todos los timers Func normal y por overflow
+	//El 0 para;el 2 para; el 1 para; el 3 para;el 4 para; el 5 para;
+	cli();	
+	
+	TCCR0A = 0x00; 
+	TCCR0B = 0x01; //sin prescalado 001;  //ver num overflows JulioJuan
+	TIMSK2 = 0x01;
+	
+	//Timer 2 para parpadeo Led en partida extra cada 0.1s cuando listo para lanzar
+	TCCR2A = 0x00; 
+	TCCR2B = 0x01; //sin prescalado 001		
+	TIMSK2 = 0x01; 
+
+	//Timer 1 CrisIbra lanz-elev; timer3 para swing para 1s? de swing centro-izq o izq-centro; 
+	TCCR1A = 0x00; 					//falta mirar overflows a 8Mhz
+	TCCR1B = 0x01; //sin prescalado 001
+	TIMSK1 = 0x01; 
+	
+	//Timer 3 DavidTito Antirrebotes para SW2 posic medio
+	TCCR3A = 0x00; 					//falta mirar overflows a 8Mhz y hacer subrutina
+	TCCR3B = 0x01; //sin prescalado 001
+	TIMSK3 = 0x01; 
+	
+	sei();
+	
+	
+	//Esperamos un tiempo a que todos los SW estén pulsados.
+	
+}
+
+
 void delay(int ms){
 	for(int j=0; j<ms;j++){
 		for(volatile unsigned i = 0; i<DELAY;){
 			i++;
-			printf("a");
+			//printf("a");
 		}
 	}
 }
+
 
 void changeBit(uint8_t * puerto, uint8_t bit){				//cambia el valor de cierto bit del puerto que sea
 	//sintaxis:	changeBit( &POTRB , 2 )
@@ -171,19 +235,7 @@ void stopMotor(motor *M){//NOTA IMPORTANTE
 }
 
 //	FUNCIONES
-void setup(void){
-	//Pone en marcha todos los motores hacia su posición de inicio.
-	//Esperar un tiempo
-	//Cuando todos se encuentren en su posicion original se carga la primera bola
-	
-	DDRB=0xff;			//todos salidas motor 1, motor 3, motor 4, motor 5 enable y dirección
-	DDRK=0b00000010;	//PK1 salida Led, el resto entrada interrupciones sensores opticos
-	DDRL=0b00000111;	//PL0,PL1, PL2 salidas para el motor 2
-						//PL3 => SW1, PL4 => SW3, PL5 => SW2, PL6 => SW5, PL7 => SW4
-	DDRD=0xff;			//todos salida para el display
-	
-	//Esperamos un tiempo a que todos los SW estén pulsados.
-}
+
 
 //	INTERRUPCIONES
 
