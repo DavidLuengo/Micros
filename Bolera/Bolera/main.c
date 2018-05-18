@@ -19,8 +19,10 @@ Grupo K
 //funciones para cambiar bit y para limpiar bit, esto último no va como puse en otra macro 
 
 #define OVERFLOWS_100_MS 3125       //Timer 2 8bits,8Mhz, para 0.1 seg parpadeo LED son 13 veces desborde timer aprox
-#define OVERFLOWS_11000_MS 1343   //Timer 1 16bits,8Mhz, elevar SW5 tras lanzamiento SW4 soltar, X veces desborde timer aprox
+#define OVERFLOWS_6000 750   //Timer 1 16bits,8Mhz, elevar SW5 tras lanzamiento SW4 soltar, X veces desborde timer aprox
 //poner defines para el resto de timers tenerlos aquí
+int overflowssw6 = 0;
+
 
 // Constante del delay
 #define DELAY 56
@@ -41,10 +43,10 @@ int retardo=0;
 //int swi=0;
 
 // Contadores del swing
-unsigned int *cont_T0 = 0;	// Timer0
-unsigned int *cont_T2 = 0;	// Timer2
-unsigned int *cont_T3 = 0;	// Timer3
-unsigned int *cont_SW2 = 0;	// SW2
+unsigned int cont_T0 = 0;	// Timer0
+unsigned int cont_T2 = 0;	// Timer2
+unsigned int cont_T3 = 0;	// Timer3
+unsigned int cont_SW2 = 0;	// SW2
 
 typedef struct{
 	volatile uint8_t * port;
@@ -63,14 +65,12 @@ motor motor4 = {&PORTL, 0, 0, 0, 4, 667};
 motor motor5 = {&PORTL, 0, 0, 0, 6, 2667};
 
 //para parpadeo LED cada 0.1s
-uint8_t *P_extra = 0x00;  //valor de a lo que apunta puntero a 0, el puntero es para que se pueda acceder a la vble 
+uint8_t P_extra = 0x00;  //valor de a lo que apunta puntero a 0, el puntero es para que se pueda acceder a la vble 
 			 //desde cualquier función, si es vble solo en esa función sería local
 			 // NOTA: ver la nomenclatura en otros codigos
 
 	// Vector de direcciones a los motores
 motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
-
-#define DELAY 56
 
 
 //	FUNCIONES
@@ -238,127 +238,6 @@ void stopMotor(motor *M){//NOTA IMPORTANTE
 	}
 }
 
-//	INTERRUPCIONES
-
-// Timer 3
-ISR(TIMER3_OVF_vect){
-	if(*cont_T3 < 25){
-		(*cont_T3)++;
-	}
-	else{
-		cli();
-		// Se deshabilita TIMER3
-		TCCR3B = 0X00;
-		// Se habilita SW2
-		PCMSK0 |= 0b00100000;
-		sei();
-		// Reiniciar contador
-		*cont_T3 = 0;
-	}
-}
-
-// Timer 2
-ISR(TIMER2_OVF_vect){
-	if(*cont_T2 == OVERFLOWS_100_MS){
-		changeBit(&PORTK, 1);
-		*cont_T2 = 0;
-	}
-	else{
-		(*cont_T2)++;
-	}
-}
-
-// Timer 0
-ISR(TIMER0_OVF_vect){
-	if(*cont_T0 < 2){
-		(*cont_T0)++;
-	}
-	else{
-		// Deshabilitar TIMER0
-		cli();
-		TCCR0B = 0x00;
-		sei();
-		// Cambias direccion motor2
-		moveMotor(&motor2,!motor2.dir);
-		// Reiniciar contador
-		*cont_T0 = 0;
-	}
-}
-
-// Interrupcion SW6
-ISR(PCINT2_vect) {
-	PCMSK2 = 0x00;	
-	stopMotor(&motor2);
-	moveMotor(&motor4, IZDA);//abre
-	TIMSK1 = 0x01; //Habilito la interrupción 13.5sec por overflow
-	TCCR1B = 0x01;//Habilito la interrupción temporal con preescalado clk/1 de 16bits
-	
-	// Variables del swing
-	*cont_T0 = 0;
-	*cont_T2 = 0;
-	*cont_T3 = 0;
-	*cont_SW2 = 0;
-	
-	// Deshabilitar SW2 y timers 2 y 3 (el 0 no es necesario pues se usa para los LEDS)
-	PCMSK0 &= 0b11011111;
-	TCCR2B = 0x00;
-	TCCR3B = 0x00;	
-}
-
-// Interruocion SW2 => PCINT5 (PB5)
-ISR(PCINT0_vect){
-	// Funcionamiento del swing:
-	// 1) Avanza hacia la izda
-	// 2) Toca SW2_medio => Cont++
-	// 3) Toca SW2_izda => Cont++
-	// 4) A partir de aqui, siempre que se detecte un SW2:
-	//	- Se deeshabilita SW2
-	//	- Se para el motor y se espera un tiempo para el frenado
-	//	- Se pone en marcha en otro sentido
-	//	- Despues de un tiempo suficiente se habilita SW2
-	// 5) Cuando se pulsa SW6, se reinician los valores de swing()
-	
-	cli();
-	// Deshabilitamos esta interrupcion
-	PCMSK0 &= 0b11011111;
-	
-	// Habilitar timer 3
-	TCCR3B = 0x01;
-	sei();
-	
-	
-	if((PINB & 0b00100000) != 0x00){
-		if(*cont_SW2 == 0x00){
-			cli();
-			//SW6
-			PCMSK2 = 0x01; //Hemos activado Interrupción PCINT16 del PORTK
-			//PCICR= 0b00000100;//habilitadas interrupciones grupo 2 (de la 16 a la 23)
-			sei();
-			if(*P_extra == 0x00){
-				setBit(&PORTK,1); // Encender el LED
-			}
-			else{
-				// Se activa el parpadeo del LED
-				TCCR2B = 0x01;
-			}
-			
-			*cont_SW2 = 0x01;
-		}
-		
-		else if(*cont_SW2 == 0x01){
-			// Frenar el motor
-			stopMotor(&motor2);
-			
-			cli();
-			// Habilitar timer 0 (freno)
-			TCCR0B = 0x05; //Prescalado 1024 => 101		CONTAMOS 2 OVERFLOWS en lugas de los 1.52 veces necesarias					
-			sei();	
-		}
-	}
-	
-	
-}
-
 int cb1(){//3.5seg
 	moveMotor(&motor2, DCHA); //Quiero ponerlo listo para recibir bola
 	moveMotor(&motor3, DCHA); //avanza adelante=DCHA
@@ -379,7 +258,7 @@ int cb3(){//3.5seg
 	moveMotor(&motor3, IZDA);
 	moveMotor(&motor1,IZDA);
 	delay(15000);
-	return 560; 
+	return 560;
 }
 
 int cb4(){//1.5seg
@@ -392,7 +271,7 @@ int cb4(){//1.5seg
 }
 
 int cb5(){//1seg
-//	moveMotor(&motor1, IZDA);
+	//	moveMotor(&motor1, IZDA);
 	//delay(100);
 	//dynamicstop(&motor1);
 	moveMotor(&motor2,IZDA); //IMPORTANTE no se puede mover el motor 1 y motor 2 al mismo tiempo
@@ -403,7 +282,7 @@ int cb5(){//1seg
 void cargarbola(){
 	if(PINL & 0b00100000){
 		moveMotor(&motor2, IZDA); //Lejos de recibir bola=IZDA
-		delay(motor2.retardo >> 1); // motor2.retardo >> 1 equivale a motor2.retardo*0.5 
+		delay(motor2.retardo >> 1); // motor2.retardo >> 1 equivale a motor2.retardo*0.5
 	}
 	if(PINL & 0b00001000){//Verificar que cuando SW2 esta activo M1 se sube
 		moveMotor(&motor1, DCHA);
@@ -422,8 +301,8 @@ void cargarbola(){
 	delay(10000);
 	
 	cb5();
-	delay(6000); //Aprox para poner en la mitad
-	stopMotor(&motor2);
+	//delay(6000); //Aprox para poner en la mitad
+	//stopMotor(&motor2);
 	
 	//swi = 1;
 	
@@ -434,53 +313,134 @@ void cargarbola(){
 	sei();
 }
 
-int overflowssw6 = OVERFLOWS_11000_MS;
+//	INTERRUPCIONES
 
+// Timer 3
+ISR(TIMER3_OVF_vect){
+	if(cont_T3 < 40){
+		(cont_T3)++;
+	}
+	else{
+		
+		// Se deshabilita TIMER3
+		TCCR3B = 0X00;
+		// Se habilita SW2
+		PCMSK0 |= 0b00100000;
+		
+		// Reiniciar contador
+		cont_T3 = 0;
+	}
+}
+
+// Timer 2
+ISR(TIMER2_OVF_vect){
+	if(cont_T2 == OVERFLOWS_100_MS){
+		changeBit(&PORTK, 1);
+		cont_T2 = 0;
+	}
+	else{
+		(cont_T2)++;
+	}
+}
+
+// Timer 1
 ISR(TIMER1_OVF_vect){
+	overflowssw6++;
 	
-	if(overflowssw6--==0){
+	if(overflowssw6 == OVERFLOWS_6000){
+		overflowssw6=0;
 		moveMotor(&motor5,DCHA);
 		cargarbola();
-		moveMotor(&motor5,IZDA);}
+		moveMotor(&motor5,IZDA);
+		TCCR1B = 0x00;//Deshabilito la interrupcion temporal
+	}
+}
+
+
+// Timer 0
+ISR(TIMER0_OVF_vect){
+	if(cont_T0 < 2){
+		(cont_T0)++;
+	}
+	else{
+		// Deshabilitar TIMER0
 		
-	
-	TCCR1B = 0x00;//Deshabilito la interrupcion temporal
-	
+		TCCR0B = 0x00;
+		
+		// Cambias direccion motor2
+		moveMotor(&motor2,!motor2.dir);
+		// Reiniciar contador
+		cont_T0 = 0;
+	}
 }
 
-/*
-void swing(){
-	// Encender LED
-	//setBit(PORTK,1);
+// Interrupcion SW6
+ISR(PCINT2_vect) {
+	PCMSK2 = 0x00;	
+	stopMotor(&motor2);
+	moveMotor(&motor4, IZDA);//abre
+	TCCR1B = 0x01;//Habilito la interrupción temporal con preescalado clk/1 de 16bits
+	TIMSK1 = 0x01; //Habilito la interrupción 4.5sec por overflow
 	
-	    moveMotor(&motor2,DCHA);
-		delay(3000);
-		stopMotor(&motor2);
-		delay(50);
-		moveMotor(&motor2,IZDA);
-		delay(3000);
-		stopMotor(&motor2);
-		delay(50);
+	// Variables del swing
+	cont_T0 = 0;
+	cont_T2 = 0;
+	cont_T3 = 0;
+	cont_SW2 = 0;
 	
+	// Deshabilitar SW2 y timers 2 y 3 (el 0 no es necesario pues se usa para los LEDS)
+	PCMSK0 &= 0b11011111;
+	TCCR2B = 0x00;
+	TCCR3B = 0x00;
+	
+	// Apagar LED
+	clearBit(&PORTK,1);
 
-	// Cosas necesarias:
-	// Variable que cuente
-	// Contador 8 bits
-	// Interrupcion y pin para SW2
-	
-	cli();
-	PCICR= 0b00000101;//habilitadas interrupciones grupo 2 (de la 16 a la 23) y el grupo 0 (de la 0 a la 7)
-	//SW6
-	PCMSK2 = 0x01; //Hemos activado Interrupción PCINT16 del PORTK
-	//SW2
-	PCMSK0 |= 0b00100000;
-	sei();
-	
-	// Encender el LED
-	setBit(&PORTK,1);
 }
-*/
 
+// Interruocion SW2 => PCINT5 (PB5)
+ISR(PCINT0_vect){
+	// Funcionamiento del swing:
+	// 1) Avanza hacia la izda
+	// 2) Toca SW2_medio => Cont++
+	// 3) Toca SW2_izda => Cont++
+	// 4) A partir de aqui, siempre que se detecte un SW2:
+	//	- Se deeshabilita SW2
+	//	- Se para el motor y se espera un tiempo para el frenado
+	//	- Se pone en marcha en otro sentido
+	//	- Despues de un tiempo suficiente se habilita SW2
+	// 5) Cuando se pulsa SW6, se reinician los valores de swing()
+	
+	
+	// Deshabilitamos esta interrupcion
+	PCMSK0 &= 0b11011111;	
+	// Habilitar timer 3
+	TCCR3B = 0x01;
+
+		if(cont_SW2 == 0){
+			
+			//SW6
+			PCMSK2 = 0x01; //Hemos activado Interrupción PCINT16 del PORTK
+			//PCICR= 0b00000100;//habilitadas interrupciones grupo 2 (de la 16 a la 23)
+			
+			if(P_extra == 0x00){
+				setBit(&PORTK,1); // Encender el LED
+			}
+			else{
+				// Se activa el parpadeo del LED
+				TCCR2B = 0x01;
+			}
+			
+			cont_SW2 = 1;
+		}
+		
+		else if((cont_SW2) == 1){
+			// Frenar el motor
+			stopMotor(&motor2);
+			// Habilitar timer 0 (freno)
+			TCCR0B = 0x05; //Prescalado 1024 => 101		CONTAMOS 2 OVERFLOWS en lugas de los 1.52 veces necesarias
+		}
+}
 
 void inicializacion(){
 	moveMotor(&motor5, IZDA); //Bajar=IZDA
