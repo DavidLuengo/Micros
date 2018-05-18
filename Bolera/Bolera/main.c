@@ -24,8 +24,8 @@ Grupo K
 int overflowssw6 = 0;
 
 
-// Constante del delay
-#define DELAY 56
+// Constante del delay: calculada empiricamente con simulacion
+#define DELAY 420
 
 //	DEFINICIONES, ESTRUCTURAS y CONSTANTES
 const uint8_t DCHA = 0x01;		// DERECHA
@@ -58,11 +58,11 @@ typedef struct{
 } motor;
 
 //	VARIABLES
-motor motor1 = {&PORTL, 0, 0, 0, 0, 1000};
-motor motor2 = {&PORTB, 0, 0, 0, 0, 1000};
-motor motor3 = {&PORTL, 0, 0, 0, 2, 2334};
-motor motor4 = {&PORTL, 0, 0, 0, 4, 667};
-motor motor5 = {&PORTL, 0, 0, 0, 6, 2667};
+motor motor1 = {&PORTL, 0, 0, 0, 0, 134};
+motor motor2 = {&PORTB, 0, 0, 0, 0, 134};
+motor motor3 = {&PORTL, 0, 0, 0, 2, 311};
+motor motor4 = {&PORTL, 0, 0, 0, 4, 89};
+motor motor5 = {&PORTL, 0, 0, 0, 6, 356};
 
 //para parpadeo LED cada 0.1s
 uint8_t P_extra = 0x00;  //valor de a lo que apunta puntero a 0, el puntero es para que se pueda acceder a la vble 
@@ -114,7 +114,7 @@ void setup(void){
 	TIMSK3 = 0x01; 
 	
 	//habilitadas interrupciones grupo 2 (de la 16 a la 23) y el grupo 0 (de la 0 a la 7)
-	PCICR= 0b00000101;
+	PCICR = 0b00000101;
 	PCMSK0 = 0x00;
 	PCMSK2 = 0x00;
 	
@@ -128,7 +128,6 @@ void setup(void){
 void delay(int ms){
 	for(int j=0; j<ms;j++){
 		for(volatile unsigned i = 0; i < DELAY; i++){
-			//printf("a");
 			asm("nop");
 		}
 	}
@@ -239,41 +238,37 @@ void stopMotor(motor *M){//NOTA IMPORTANTE
 }
 
 int cb1(){//3.5seg
-	moveMotor(&motor2, DCHA); //Quiero ponerlo listo para recibir bola
-	moveMotor(&motor3, DCHA); //avanza adelante=DCHA
-	delay(15000);
+	moveMotor(&motor2, DCHA);	//Quiero ponerlo listo para recibir bola
+	moveMotor(&motor3, DCHA);	//avanza adelante=DCHA
+	moveMotor(&motor5, DCHA);	//Sube = DCHA
+	delay(3500);
 	return motor3.retardo;
 }
 
 int cb2(){//1seg
-	//moveMotor(&motor2, IZDA);
-	//delay(130);
-	//dynamicstop(&motor2);
-	moveMotor(&motor4, DCHA);//cierro compuerta=DCHA
-	delay(15000);
+	moveMotor(&motor4, DCHA);	//cierro compuerta=DCHA
+	delay(1000);
 	return motor4.retardo;
 }
 
 int cb3(){//3.5seg
-	moveMotor(&motor3, IZDA);
-	moveMotor(&motor1,IZDA);
-	delay(15000);
+	moveMotor(&motor5, IZDA);	//Baja motor5
+	moveMotor(&motor3, IZDA);	//Retrocede motor3
+	moveMotor(&motor1, IZDA);	//Lo pone abajo
+	delay(3500);
 	return 560;
 }
 
 int cb4(){//1.5seg
 	moveMotor(&motor1, DCHA); //Dejo pongo la bola lista en el lanzador
 	moveMotor(&motor2, IZDA);
-	delay(130);
+	delay(18);
 	stopMotor(&motor2);
-	delay(15000);
+	delay(2000);
 	return motor1.retardo;
 }
 
 int cb5(){//1seg
-	//	moveMotor(&motor1, IZDA);
-	//delay(100);
-	//dynamicstop(&motor1);
 	moveMotor(&motor2,IZDA); //IMPORTANTE no se puede mover el motor 1 y motor 2 al mismo tiempo
 	return 10000;
 }
@@ -289,22 +284,18 @@ void cargarbola(){
 		delay(motor1.retardo);
 	}
 	cb1();
-	delay(10000);
+	delay(1333);
 	
 	cb2();
-	delay(10000);
+	delay(1333);
 	
 	cb3();
-	delay(10000);
+	delay(1333);
 	
 	cb4();
-	delay(10000);
+	delay(1333);
 	
 	cb5();
-	//delay(6000); //Aprox para poner en la mitad
-	//stopMotor(&motor2);
-	
-	//swi = 1;
 	
 	// Habilito el SW2
 	cli();
@@ -349,9 +340,9 @@ ISR(TIMER1_OVF_vect){
 	
 	if(overflowssw6 == OVERFLOWS_6000){
 		overflowssw6=0;
-		moveMotor(&motor5,DCHA);
+		//moveMotor(&motor5,DCHA);
 		cargarbola();
-		moveMotor(&motor5,IZDA);
+		//moveMotor(&motor5,IZDA);
 		TCCR1B = 0x00;//Deshabilito la interrupcion temporal
 	}
 }
@@ -448,9 +439,9 @@ void inicializacion(){
 	
 	moveMotor(&motor1,DCHA);
 	
-	delay(300);
+	delay(40);
 	moveMotor(&motor2,DCHA);
-	delay(10000);
+	delay(1333);
 	moveMotor(&motor1, IZDA); //recibo bola=DCHA
 	delay(motor5.retardo); //Quiero tiempo suficiente para bajar motor5 y cargar bola en elevador de carga
 	cargarbola();
@@ -463,11 +454,6 @@ int main(void){
     setup();
 	inicializacion();
 	while(1){
-		/*
-		if(swi == 1){
-			swing();
-		}
-		*/
 	}
    
 }
