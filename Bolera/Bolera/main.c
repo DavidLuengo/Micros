@@ -31,14 +31,6 @@ int contador01 = 0;
 int contador02 = 0;
 
 
-int PrimeraTirada = 1,
-bandera1= 0, bandera2= 0, bandera3= 0, bandera4= 0,bandera5= 0, bandera6= 0, contadorparp =0, a=0,
-puntuacion= 0, un = 0, de= 0, cambio = 1, ultima= 0, ultimatirada = 0, fin= 0, derecha = 0, izquierda = 0;
-int unidades=0, decenas =0;
-
-int pulsado=0;
-
-
 // Constante del delay: calculada empiricamente con simulacion
 #define DELAY 420
 
@@ -51,14 +43,8 @@ const uint8_t ACT = 0x01;		// BK ACTIVO (solo motor2)
 const uint8_t DEACT = 0x00;		// BK INACTIVO (solo motor2)
 
 
-uint8_t enable;
-uint8_t dir;
-uint8_t bk;
-int retardo=0;
-//int swi=0;
-
 // Contadores del swing
-unsigned int cont_T0 = 0;	// Timer0
+unsigned int cont_T1 = 0;	// Timer1
 unsigned int cont_T2 = 0;	// Timer2
 unsigned int cont_T3 = 0;	// Timer3
 unsigned int cont_SW2 = 0;	// SW2
@@ -83,10 +69,18 @@ motor motor5 = {&PORTL, 0, 0, 0, 6, 356};
 uint8_t P_extra = 0x00;  //valor de a lo que apunta puntero a 0, el puntero es para que se pueda acceder a la vble 
 			 //desde cualquier función, si es vble solo en esa función sería local
 			 // NOTA: ver la nomenclatura en otros codigos
+uint8_t cargar_bool = 0x00;
+
 
 	// Vector de direcciones a los motores
 motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
 
+int PrimeraTirada = 1,
+bandera1= 0, bandera2= 0, bandera3= 0, bandera4= 0,bandera5= 0, bandera6= 0, contadorparp =0, a=0,
+puntuacion= 0, un = 0, de= 0, cambio = 1, ultima= 0, ultimatirada = 0, fin= 0, derecha = 0, izquierda = 0;
+int unidades=0, decenas =0;
+
+int pulsado=0;
 
 //	FUNCIONES
 void setup(void){
@@ -101,11 +95,8 @@ void setup(void){
 						//PB3 => SW1, PB4 => SW3, PB5 => SW2, PB6 => SW5, PB7 => SW4
 	DDRD=0xFF;			//todos salida para el display
 	
-
-	
 	//LED apagado al comienzo, entiendo que es activo por nivel alto
 	PORTK &=11111101;
-	
 	
 	//Todos los timers Func normal y por overflow
 	//El 0 para;el 2 para; el 1 para; el 3 para;el 4 para; el 5 para;
@@ -113,7 +104,7 @@ void setup(void){
 	
 	TCCR0A = 0x00;
 	TCCR0B = 0b00000011; // *Empieza a contar el temporizador del display q alterna unidades y decenas a 8192 microsegundos.
-    TIMSK0 = 0x01; //
+    	TIMSK0 = 0x01; //
 	
 	//Timer 2 para parpadeo Led en partida extra cada 0.1s cuando listo para lanzar
 	TCCR2A = 0x00; 
@@ -146,37 +137,32 @@ void setup(void){
 
 void pintar(int un, int de) {
 
-    switch (un) {
-
-    case 0 :  unidades = 0b00111111; break;
-	case 1 :  unidades = 0b00000110; break;
-    case 2 :  unidades = 0b01011011; break;
-    case 3 :  unidades = 0b01001111; break;
-    case 4 :  unidades = 0b01100110; break;
-    case 5 :  unidades = 0b01101101; break;
-    case 6 :  unidades = 0b01111101; break;
-    case 7 :  unidades = 0b00000111; break;
-    case 8 :  unidades = 0b01111111; break;
-    case 9 :  unidades = 0b01101111; break;
+    	switch (un) {
+    	case 0 :  unidades = 0b00111111; break;
+    	case 1 :  unidades = 0b00000110; break;
+    	case 2 :  unidades = 0b01011011; break;
+    	case 3 :  unidades = 0b01001111; break;
+    	case 4 :  unidades = 0b01100110; break;
+    	case 5 :  unidades = 0b01101101; break;
+    	case 6 :  unidades = 0b01111101; break;
+    	case 7 :  unidades = 0b00000111; break;
+    	case 8 :  unidades = 0b01111111; break;
+    	case 9 :  unidades = 0b01101111; break;
 	default:  unidades = 0b00000000;  //*display apagado durante el parpadeo
-
-
-}
-    switch (de) {
-
-    case 0 :  decenas = 0b10111111; break;
-    case 1 :  decenas = 0b10000110; break;
-    case 2 :  decenas = 0b11011011; break;
-    case 3 :  decenas = 0b11001111; break;
-    case 4 :  decenas = 0b11100110; break;
-    case 5 :  decenas = 0b11101101; break;
-    case 6 :  decenas = 0b11111101; break;
-    case 7 :  decenas = 0b10000111; break;
-    case 8 :  decenas = 0b11111111; break;
-    case 9 :  decenas = 0b11101111; break;
+	}
+	switch (de) {
+    	case 0 :  decenas = 0b10111111; break;
+    	case 1 :  decenas = 0b10000110; break;
+    	case 2 :  decenas = 0b11011011; break;
+    	case 3 :  decenas = 0b11001111; break;
+    	case 4 :  decenas = 0b11100110; break;
+    	case 5 :  decenas = 0b11101101; break;
+    	case 6 :  decenas = 0b11111101; break;
+    	case 7 :  decenas = 0b10000111; break;
+    	case 8 :  decenas = 0b11111111; break;
+    	case 9 :  decenas = 0b11101111; break;
 	default:  decenas = 0b10000000; //*display apagado durante el parpadeo
-	
-}
+	}
 }
 
 
@@ -359,6 +345,8 @@ void cargarbola(){
 	//SW2
 	PCMSK0 |= 0b00100000;
 	sei();
+	
+	cargar_bool = 0x00;
 }
 
 //	INTERRUPCIONES
@@ -433,96 +421,73 @@ ISR(TIMER2_OVF_vect){
 // Timer 1
 ISR(TIMER1_OVF_vect){
 	
-		if(pulsado==1){
-	overflowssw6++;
-	
+if(pulsado==1){
+	overflowssw6++;	
 	if(overflowssw6 == OVERFLOWS_6000){
 		overflowssw6=0;
-		//moveMotor(&motor5,DCHA);
+		
+		// Variable carga de bola
+		// carga_bool = 0x01;
+		
 		cargarbola();
-		//moveMotor(&motor5,IZDA);
+		
 		TCCR1B = 0x00;//Deshabilito la interrupcion temporal
 		
 		if (bandera1 == 1) puntuacion++;
-        if (bandera2 == 1) puntuacion++;
-        if (bandera3 == 1) puntuacion++;
-        if (bandera4 == 1) puntuacion++;
-        if (bandera5 == 1) puntuacion++;
-        if (bandera6 == 1) puntuacion++;
+        	if (bandera2 == 1) puntuacion++;
+        	if (bandera3 == 1) puntuacion++;
+        	if (bandera4 == 1) puntuacion++;
+        	if (bandera5 == 1) puntuacion++;
+        	if (bandera6 == 1) puntuacion++;
 		
 		bandera1= 0; 
 		bandera2= 0; 
 		bandera3= 0; 
 		bandera4= 0; 
 		bandera5= 0; 
-		bandera6= 0; 
+		bandera6= 0;
+		
+		un = puntuacion % 10;
+		de = puntuacion / 10;
 
-        if (puntuacion<9) {
+        	if (ultimatirada) {
+        		ultimatirada = 0;
+        		fin = 1;
+			TCCR4B = 0x01; //  habilito el temporizador del parpadeo de 0.1 segs. ESTA HABILITACION DEBE HACERSE CUANDO LA BOLA ESTA CARGADA PARA EMPEZAR UNA NUEVA RONDA
+        		TIMSK4 = 0x01; 
+        	}
 
-            un = puntuacion ;
-            de = 0;
-
-        }
-
-        else if (puntuacion >9) {
-
-            un= puntuacion %10;
-            de = puntuacion/10;
-
-        }
-
-        if (ultimatirada) {
-
-        ultimatirada = 0;
-        fin = 1;
-		TCCR4B = 0x01; //  habilito el temporizador del parpadeo de 0.1 segs. ESTA HABILITACION DEBE HACERSE CUANDO LA BOLA ESTA CARGADA PARA EMPEZAR UNA NUEVA RONDA
-        TIMSK4 = 0x01; 
-
-
-        }
-
-         pintar(un, de); //* actualiza las unidades y decenas en "binario", codificadas segun lo de Da,Db etc.
-		 PCMSK2 = 0b00000001;
-		 TCCR1B = 0x00;//Deshabilito la interrupcion temporal
-	}
+         	pintar(un, de); //* actualiza las unidades y decenas en "binario", codificadas segun lo de Da,Db etc.
+		PCMSK2 = 0b00000001;
+		TCCR1B = 0x00;//Deshabilito la interrupcion temporal
+		}
 	}
 	else{
-		if(cont_T0 < 6){
-		(cont_T0)++;
+		if(cont_T1 < 6){
+			(cont_T1)++;
+		}
+		else{
+			// Deshabilitar TIMER1
+			TCCR1B = 0x00;
+			// Cambias direccion motor2
+			moveMotor(&motor2,!motor2.dir);
+			// Reiniciar contador
+			cont_T1 = 0;
+		}
 	}
-	else{
-		// Deshabilitar TIMER1
-		TCCR1B = 0x00;
-		// Cambias direccion motor2
-		moveMotor(&motor2,!motor2.dir);
-		// Reiniciar contador
-		cont_T0 = 0;
-	}
-	}
-	
-
 }
 
 
 // Timer 0
 ISR(TIMER0_OVF_vect){
-	if (cambio) {
-
-		//PORTD = PORTD & 0b00000000;				
-		PORTD = decenas;				
-	}
-	else if (cambio == 0) {
-
-		//PORTD = PORTD & 0b00000000;
-		PORTD = unidades;
-	}
-	if (cambio) {						//*estos dos ifs no se podrian haber metido dentro de los dos anteriores? osea que despues del PORTD = PORTD | decenas, cambio = 0?
+	if (cambio) {				
+		PORTD = decenas;
 		cambio = 0;
 	}
 	else if (cambio == 0) {
+		PORTD = unidades;
 		cambio = 1;
 	}
-
 }
 
 // Interrupcion SW6
@@ -532,89 +497,84 @@ ISR(PCINT2_vect) {
 		PCMSK2 = 0b11111100;
 		pulsado=1;
 		
-		
 		if(fin) { //* Compruebo si es la primera tirada de la siguiente ronda.
-
 			un = 0;
 			de = 0;
 			puntuacion = 0;
 			unidades = 0;
 			decenas = 0;
 			fin = 0;
-			PrimeraTirada = 1;
+			//PrimeraTirada = 1;
 			ultima = 0;
 			TCCR4B = 0x00; //* deshabilito el temporizador de 0.1 segs, el del parpadeo
-
-		 }	
-		 
-		if (PrimeraTirada == 1) { //* compruebo si es la primera lanzada para habilitar temporizador de 30 segundos.
-
-
-                TCCR5A = 0X00; // WGM0...1 A 00 PORQUE QUEREMOS TRABAJAR EN MODO NORMAL
-                TCCR5B = 0x01; // WGM2...3 = 0 ( MODO NO0RMAL) , CS0...3 = 001 (SIN PREESCALAD, 1X)
-                TIMSK5 = 0x01; // activo con interrupcion por desbordamiento
-                PrimeraTirada = 0;
-        }
+			TCCR5A = 0X00; // WGM0...1 A 00 PORQUE QUEREMOS TRABAJAR EN MODO NORMAL
+                	TCCR5B = 0x01; // WGM2...3 = 0 ( MODO NO0RMAL) , CS0...3 = 001 (SIN PREESCALAD, 1X)
+                	TIMSK5 = 0x01; // activo con interrupcion por desbordamiento
+		}	
+		/* 
+		else if (PrimeraTirada == 1) { //* compruebo si es la primera lanzada para habilitar temporizador de 30 segundos.
+                	TCCR5A = 0X00; // WGM0...1 A 00 PORQUE QUEREMOS TRABAJAR EN MODO NORMAL
+                	TCCR5B = 0x01; // WGM2...3 = 0 ( MODO NO0RMAL) , CS0...3 = 001 (SIN PREESCALAD, 1X)
+                	TIMSK5 = 0x01; // activo con interrupcion por desbordamiento
+                	PrimeraTirada = 0;
+        	}
+		*/
 		
-		if( ultima ) { //* Compruebo si es la ultima lanzada
-
+		else if( ultima ) { //* Compruebo si es la ultima lanzada
 			ultimatirada = 1;
 		}
 		
-	stopMotor(&motor2);
-	moveMotor(&motor4, IZDA);//abre
-	TCCR1B = 0x01;//Habilito la interrupción temporal con preescalado clk/1 de 16bits
-	TIMSK1 = 0x01; //Habilito la interrupción 4.5sec por overflow
+		stopMotor(&motor2);
+		moveMotor(&motor4, IZDA);//abre
+		TCCR1B = 0x01;//Habilito la interrupción temporal con preescalado clk/1 de 16bits
+		TIMSK1 = 0x01; //Habilito la interrupción 4.5sec por overflow
 	
-	// Variables del swing
-	cont_T0 = 0;
-	cont_T2 = 0;
-	cont_T3 = 0;
-	cont_SW2 = 0;
+		// Variables del swing
+		cont_T1 = 0;
+		cont_T2 = 0;
+		cont_T3 = 0;
+		cont_SW2 = 0;
 	
-	// Deshabilitar SW2 y timers 2 y 3 (el 0 no es necesario pues se usa para los LEDS)
-	PCMSK0 &= 0b11011111;
-	TCCR2B = 0x00;
-	TCCR3B = 0x00;
+		// Deshabilitar SW2 y timers 2 y 3 (el 0 no es necesario pues se usa para los LEDS)
+		PCMSK0 &= 0b11011111;
+		TCCR2B = 0x00;
+		TCCR3B = 0x00;
 	
-	// Apagar LED
-	clearBit(&PORTK,1);
-
+		// Apagar LED
+		clearBit(&PORTK,1);
 	}
 	
 
-	if (((PINK >> 2) & 0x01 )== 0x00) {				//bolo 1
+	else if (((PINK >> 2) & 0x01 )== 0x00) {				//bolo 1
 		PCMSK2 = 0b11111000;
-		bandera1 = 1; 
-		
+		bandera1 = 1; 	
 	}
 	
-	if (((PINK >> 3) & 0x01 )== 0x00) {
+	else if (((PINK >> 3) & 0x01 )== 0x00) {
 	   PCMSK2 = 0b11110100;
 	   bandera2 = 1;
 	}
 	
 	
-	if (((PINK >> 4) & 0x01) == 0x00) {
+	else if (((PINK >> 4) & 0x01) == 0x00) {
 	  PCMSK2 = 0b11101100;
 	  bandera3 = 1;
 	}
 	
 	
-	if (((PINK >> 5) & 0x01) == 0x00) {
+	else if (((PINK >> 5) & 0x01) == 0x00) {
 	PCMSK2 = 0b11011100;
 	  bandera4 = 1;
 	}
 
-	if (((PINK >> 6) & 0x01 )== 0x00) {
+	else if (((PINK >> 6) & 0x01 )== 0x00) {
 	PCMSK2 = 0b10111100;
 	  bandera5 = 1;
 	}
 
-	if (((PINK >> 7) & 0x01 )== 0x00) {
+	else if (((PINK >> 7) & 0x01 )== 0x00) {
 	PCMSK2 = 0b01111100;
 	  bandera6 = 1;
-	
 	}
 	
 	
@@ -652,7 +612,6 @@ ISR(PCINT0_vect){
 				// Se activa el parpadeo del LED
 				TCCR2B = 0x01;
 			}
-			
 			cont_SW2 = 1;
 		}
 		
@@ -687,6 +646,9 @@ int main(void){
     setup();
 	inicializacion();
 	while(1){
+		if (carga_bool == 0x01){
+			cargarbola();
+		}
 	}
    
 }
