@@ -271,7 +271,7 @@ void stopMotor(motor *M){//NOTA IMPORTANTE
 		mask = ~mask;
 		
 		//aux = (direccion*2 + enable)*2^(M->index);
-		aux = (dir<<1)|enable;
+		aux = (_dir<<1)|_enable;
 		aux = aux<<(M->index);
 		
 		PORTL &= mask; // Deja libres los bits
@@ -317,7 +317,7 @@ int cb5(){//1seg
 
 //cargar bola
 void cargarbola(){
-	pulsado=0;
+	//pulsado=0;
 	if(PINL & 0b00100000){
 		moveMotor(&motor2, IZDA); //Lejos de recibir bola=IZDA
 		delay(motor2.retardo >> 1); // motor2.retardo >> 1 equivale a motor2.retardo*0.5
@@ -346,7 +346,7 @@ void cargarbola(){
 	PCMSK0 |= 0b00100000;
 	sei();
 	
-	cargar_bool = 0x00;
+	pulsado = 0;
 }
 
 //	INTERRUPCIONES
@@ -421,44 +421,48 @@ ISR(TIMER2_OVF_vect){
 // Timer 1
 ISR(TIMER1_OVF_vect){
 	
-if(pulsado==1){
-	overflowssw6++;	
-	if(overflowssw6 == OVERFLOWS_6000){
-		overflowssw6=0;
+	if(pulsado == 1){
+		if (overflowssw6 < OVERFLOWS_6000){
+			overflowssw6++;	
+		}
 		
-		// Variable carga de bola
-		carga_bool = 0x01;
-				
-		TCCR1B = 0x00;//Deshabilito la interrupcion temporal
+		else if(overflowssw6 == OVERFLOWS_6000){
+			overflowssw6=0;
 		
-		if (bandera1 == 1) puntuacion++;
-        	if (bandera2 == 1) puntuacion++;
-        	if (bandera3 == 1) puntuacion++;
-        	if (bandera4 == 1) puntuacion++;
-        	if (bandera5 == 1) puntuacion++;
-        	if (bandera6 == 1) puntuacion++;
+			// Variable carga de bola
+			cargar_bool = 0x01;
+					
+			TCCR1B = 0x00;//Deshabilito la interrupcion temporal
 		
-		bandera1= 0; 
-		bandera2= 0; 
-		bandera3= 0; 
-		bandera4= 0; 
-		bandera5= 0; 
-		bandera6= 0;
+			if (bandera1 == 1) puntuacion++;
+			if (bandera2 == 1) puntuacion++;
+			if (bandera3 == 1) puntuacion++;
+			if (bandera4 == 1) puntuacion++;
+			if (bandera5 == 1) puntuacion++;
+			if (bandera6 == 1) puntuacion++;
 		
-		un = puntuacion % 10;
-		de = puntuacion / 10;
+			bandera1= 0; 
+			bandera2= 0; 
+			bandera3= 0; 
+			bandera4= 0; 
+			bandera5= 0; 
+			bandera6= 0;
+		
+			un = puntuacion % 10;
+			de = puntuacion / 10;
 
         	if (ultimatirada) {
         		ultimatirada = 0;
         		fin = 1;
-			TCCR4B = 0x01; //  habilito el temporizador del parpadeo de 0.1 segs. ESTA HABILITACION DEBE HACERSE CUANDO LA BOLA ESTA CARGADA PARA EMPEZAR UNA NUEVA RONDA
+				TCCR4B = 0x01; //  habilito el temporizador del parpadeo de 0.1 segs. ESTA HABILITACION DEBE HACERSE CUANDO LA BOLA ESTA CARGADA PARA EMPEZAR UNA NUEVA RONDA
         		TIMSK4 = 0x01; 
         	}
 
          	pintar(un, de); //* actualiza las unidades y decenas en "binario", codificadas segun lo de Da,Db etc.
-		PCMSK2 = 0b00000001;
-		TCCR1B = 0x00;//Deshabilito la interrupcion temporal
+			PCMSK2 = 0b00000001;
+			TCCR1B = 0x00; //Deshabilito el Timer1
 		}
+		
 	}
 	else{
 		if(cont_T1 < 6){
@@ -488,12 +492,13 @@ ISR(TIMER0_OVF_vect){
 	}
 }
 
-// Interrupcion SW6
-ISR(PCINT2_vect) {
+// Interrupcion SW6 y bolos
+ISR(PCINT2_vect){
 	
-	if ((PINK & 0x01 )== 0x01) {
+	// SW6
+	if ((PINK & 0x01 ) == 0x01) {
 		PCMSK2 = 0b11111100;
-		pulsado=1;
+		pulsado = 1;
 		
 		if(fin) { //* Compruebo si es la primera tirada de la siguiente ronda.
 			un = 0;
@@ -506,17 +511,9 @@ ISR(PCINT2_vect) {
 			ultima = 0;
 			TCCR4B = 0x00; //* deshabilito el temporizador de 0.1 segs, el del parpadeo
 			TCCR5A = 0X00; // WGM0...1 A 00 PORQUE QUEREMOS TRABAJAR EN MODO NORMAL
-                	TCCR5B = 0x01; // WGM2...3 = 0 ( MODO NO0RMAL) , CS0...3 = 001 (SIN PREESCALAD, 1X)
-                	TIMSK5 = 0x01; // activo con interrupcion por desbordamiento
+            TCCR5B = 0x01; // WGM2...3 = 0 ( MODO NO0RMAL) , CS0...3 = 001 (SIN PREESCALAD, 1X)
+            TIMSK5 = 0x01; // activo con interrupcion por desbordamiento
 		}	
-		/* 
-		else if (PrimeraTirada == 1) { //* compruebo si es la primera lanzada para habilitar temporizador de 30 segundos.
-                	TCCR5A = 0X00; // WGM0...1 A 00 PORQUE QUEREMOS TRABAJAR EN MODO NORMAL
-                	TCCR5B = 0x01; // WGM2...3 = 0 ( MODO NO0RMAL) , CS0...3 = 001 (SIN PREESCALAD, 1X)
-                	TIMSK5 = 0x01; // activo con interrupcion por desbordamiento
-                	PrimeraTirada = 0;
-        	}
-		*/
 		
 		else if( ultima ) { //* Compruebo si es la ultima lanzada
 			ultimatirada = 1;
@@ -524,8 +521,8 @@ ISR(PCINT2_vect) {
 		
 		stopMotor(&motor2);
 		moveMotor(&motor4, IZDA);//abre
-		TCCR1B = 0x01;//Habilito la interrupción temporal con preescalado clk/1 de 16bits
-		TIMSK1 = 0x01; //Habilito la interrupción 4.5sec por overflow
+		TCCR1B = 0x01; //Habilito la interrupción temporal con preescalado clk/1 de 16bits
+		TIMSK1 = 0x01; //Habilito la interrupción 4.sec por overflow
 	
 		// Variables del swing
 		cont_T1 = 0;
@@ -574,8 +571,6 @@ ISR(PCINT2_vect) {
 	PCMSK2 = 0b01111100;
 	  bandera6 = 1;
 	}
-	
-	
 }
 
 // Interruocion SW2 => PCINT5 (PB5)
@@ -644,9 +639,11 @@ int main(void){
     setup();
 	inicializacion();
 	while(1){
-		if (carga_bool == 0x01){
+		if (cargar_bool == 0x01){
 			cargarbola();
+			cargar_bool = 0x00;
 		}
+		
 	}
    
 }
