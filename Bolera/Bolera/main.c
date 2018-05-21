@@ -2,12 +2,6 @@
 Grupo K
  */ 
 
-int PrimeraTirada = 1,
-bandera1= 0, bandera2= 0, bandera3= 0, bandera4= 0,bandera5= 0, bandera6= 0, contadorparp =0, a=0,
-puntuacion= 0, un = 0, de= 0, cambio = 1, ultima= 0, ultimatirada = 0, fin= 0, derecha = 0, izquierda = 0;
-int unidades=0, decenas =0;
-
-int pulsado=0;
 
 
 // Conector MOLASE J1:
@@ -35,6 +29,14 @@ int overflowssw6 = 0;
 int contador = 0;			
 int contador01 = 0;
 int contador02 = 0;
+
+
+int PrimeraTirada = 1,
+bandera1= 0, bandera2= 0, bandera3= 0, bandera4= 0,bandera5= 0, bandera6= 0, contadorparp =0, a=0,
+puntuacion= 0, un = 0, de= 0, cambio = 1, ultima= 0, ultimatirada = 0, fin= 0, derecha = 0, izquierda = 0;
+int unidades=0, decenas =0;
+
+int pulsado=0;
 
 
 // Constante del delay: calculada empiricamente con simulacion
