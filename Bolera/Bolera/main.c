@@ -427,10 +427,8 @@ if(pulsado==1){
 		overflowssw6=0;
 		
 		// Variable carga de bola
-		// carga_bool = 0x01;
-		
-		cargarbola();
-		
+		carga_bool = 0x01;
+				
 		TCCR1B = 0x00;//Deshabilito la interrupcion temporal
 		
 		if (bandera1 == 1) puntuacion++;
