@@ -24,6 +24,11 @@ Grupo K
 #define SegDeJuego 3662
 #define SegDeTemp 13
 #define SegDeTemp2 563
+
+//prototipo ensamblador
+//extern void T3_asm ();
+extern void setup_asm();
+
 //poner defines para el resto de timers tenerlos aquí
 int overflowssw6 = 0;
 int contador = 0;			
@@ -405,6 +410,9 @@ ISR (TIMER4_OVF_vect){ //* temporizador de 0.1 segs para el parpadeo.
 
 // Timer 3
 ISR(TIMER3_OVF_vect){
+	// ENSAMBLADOR
+	//T3_ASM;
+	
 	if(cont_T3 < 40){
 		(cont_T3)++;
 	}
@@ -418,6 +426,7 @@ ISR(TIMER3_OVF_vect){
 		// Reiniciar contador
 		cont_T3 = 0;
 	}
+	
 }
 
 // Timer 2
@@ -686,8 +695,9 @@ void inicializacion(){
 //	PROGRAMA PRINCIPAL
 
 int main(void){
-	
-    setup();
+	//setup();
+	setup_asm;
+
 	inicializacion();
 	while(1){
 		if(CARGABOLA==1){
