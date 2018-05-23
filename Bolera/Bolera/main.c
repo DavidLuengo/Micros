@@ -15,24 +15,39 @@ Grupo K
 #include <stdio.h>
 
 
-//          MACROS
-//#define setBit(P,B) (P) |= (1<<B)
-//funciones para cambiar bit y para limpiar bit, esto último no va como puse en otra macro 
+//	MACROS
 
+// Constantes de overflows de los timers
 #define OVERFLOWS_100_MS 3125       //Timer 2 8bits,8Mhz, para 0.1 seg parpadeo LED son 13 veces desborde timer aprox
 #define OVERFLOWS_6000 750   //Timer 1 16bits,8Mhz, elevar SW5 tras lanzamiento SW4 soltar, X veces desborde timer aprox
 #define SegDeJuego 3662
 #define SegDeTemp 13
 #define SegDeTemp2 563
-//poner defines para el resto de timers tenerlos aquí
-int overflowssw6 = 0;
-int contador = 0;			
-int contador01 = 0;
-int contador02 = 0;
-
 
 // Constante del delay: calculada empiricamente con simulacion
 #define DELAY 420
+
+//poner defines para el resto de timers tenerlos aquí
+int overflowssw6 = 0;
+int CARGABOLA=0;
+
+int bandera1= 0, bandera2= 0, bandera3= 0, bandera4= 0,bandera5= 0, bandera6= 0;
+int contadorparp =0, puntuacion= 0, un = 0, de= 0, cambio = 1;
+
+uint8_t unidades = 0x00;
+uint8_t decenas = 0x00;
+uint8_t apagado = 0x00;
+
+uint8_t *DISP_U = &unidades; //Puntero al valor del display de unidades
+uint8_t *DISP_D = &decenas; //Puntero al valor del display de decenas
+
+int pulsado = 0;
+uint8_t esperar = 0;
+
+// Señales de la partida
+uint8_t P_extra = 0x00;
+uint8_t fin = 0x00;
+
 
 //	DEFINICIONES, ESTRUCTURAS y CONSTANTES
 const uint8_t DCHA = 0x01;		// DERECHA
@@ -42,11 +57,14 @@ const uint8_t OFF = 0x00;		// ENABLE OFF
 const uint8_t ACT = 0x01;		// BK ACTIVO (solo motor2)
 const uint8_t DEACT = 0x00;		// BK INACTIVO (solo motor2)
 
+int retardo = 0;
 
 // Contadores del swing
-unsigned int cont_T1 = 0;	// Timer1
+unsigned int cont_T1 = 0;	// Timer0
 unsigned int cont_T2 = 0;	// Timer2
 unsigned int cont_T3 = 0;	// Timer3
+unsigned int cont_T4 = 0;	// Timer4
+unsigned int cont_T5 = 0;	// Timer5
 unsigned int cont_SW2 = 0;	// SW2
 
 typedef struct{
@@ -65,22 +83,9 @@ motor motor3 = {&PORTL, 0, 0, 0, 2, 311};
 motor motor4 = {&PORTL, 0, 0, 0, 4, 89};
 motor motor5 = {&PORTL, 0, 0, 0, 6, 356};
 
-//para parpadeo LED cada 0.1s
-uint8_t P_extra = 0x00;  //valor de a lo que apunta puntero a 0, el puntero es para que se pueda acceder a la vble 
-			 //desde cualquier función, si es vble solo en esa función sería local
-			 // NOTA: ver la nomenclatura en otros codigos
-uint8_t cargar_bool = 0x00;
-
-
 	// Vector de direcciones a los motores
 motor *motores[] = {&motor1, &motor2, &motor3, &motor4, &motor5};
 
-int PrimeraTirada = 1,
-bandera1= 0, bandera2= 0, bandera3= 0, bandera4= 0,bandera5= 0, bandera6= 0, contadorparp =0, a=0,
-puntuacion= 0, un = 0, de= 0, cambio = 1, ultima= 0, ultimatirada = 0, fin= 0, derecha = 0, izquierda = 0;
-int unidades=0, decenas =0;
-
-int pulsado=0;
 
 //	FUNCIONES
 void setup(void){
@@ -95,8 +100,11 @@ void setup(void){
 						//PB3 => SW1, PB4 => SW3, PB5 => SW2, PB6 => SW5, PB7 => SW4
 	DDRD=0xFF;			//todos salida para el display
 	
+
+	
 	//LED apagado al comienzo, entiendo que es activo por nivel alto
 	PORTK &=11111101;
+	
 	
 	//Todos los timers Func normal y por overflow
 	//El 0 para;el 2 para; el 1 para; el 3 para;el 4 para; el 5 para;
@@ -104,7 +112,7 @@ void setup(void){
 	
 	TCCR0A = 0x00;
 	TCCR0B = 0b00000011; // *Empieza a contar el temporizador del display q alterna unidades y decenas a 8192 microsegundos.
-    	TIMSK0 = 0x01; //
+    TIMSK0 = 0x01; //
 	
 	//Timer 2 para parpadeo Led en partida extra cada 0.1s cuando listo para lanzar
 	TCCR2A = 0x00; 
@@ -137,30 +145,30 @@ void setup(void){
 
 void pintar(int un, int de) {
 
-    	switch (un) {
-    	case 0 :  unidades = 0b00111111; break;
-    	case 1 :  unidades = 0b00000110; break;
-    	case 2 :  unidades = 0b01011011; break;
-    	case 3 :  unidades = 0b01001111; break;
-    	case 4 :  unidades = 0b01100110; break;
-    	case 5 :  unidades = 0b01101101; break;
-    	case 6 :  unidades = 0b01111101; break;
-    	case 7 :  unidades = 0b00000111; break;
-    	case 8 :  unidades = 0b01111111; break;
-    	case 9 :  unidades = 0b01101111; break;
+    switch (un) {
+    case 0 :  unidades = 0b00111111; break;
+	case 1 :  unidades = 0b00000110; break;
+    case 2 :  unidades = 0b01011011; break;
+    case 3 :  unidades = 0b01001111; break;
+    case 4 :  unidades = 0b01100110; break;
+    case 5 :  unidades = 0b01101101; break;
+    case 6 :  unidades = 0b01111101; break;
+    case 7 :  unidades = 0b00000111; break;
+    case 8 :  unidades = 0b01111111; break;
+    case 9 :  unidades = 0b01101111; break;
 	default:  unidades = 0b00000000;  //*display apagado durante el parpadeo
 	}
-	switch (de) {
-    	case 0 :  decenas = 0b10111111; break;
-    	case 1 :  decenas = 0b10000110; break;
-    	case 2 :  decenas = 0b11011011; break;
-    	case 3 :  decenas = 0b11001111; break;
-    	case 4 :  decenas = 0b11100110; break;
-    	case 5 :  decenas = 0b11101101; break;
-    	case 6 :  decenas = 0b11111101; break;
-    	case 7 :  decenas = 0b10000111; break;
-    	case 8 :  decenas = 0b11111111; break;
-    	case 9 :  decenas = 0b11101111; break;
+    switch (de) {
+    case 0 :  decenas = 0b10111111; break;
+    case 1 :  decenas = 0b10000110; break;
+    case 2 :  decenas = 0b11011011; break;
+    case 3 :  decenas = 0b11001111; break;
+    case 4 :  decenas = 0b11100110; break;
+    case 5 :  decenas = 0b11101101; break;
+    case 6 :  decenas = 0b11111101; break;
+    case 7 :  decenas = 0b10000111; break;
+    case 8 :  decenas = 0b11111111; break;
+    case 9 :  decenas = 0b11101111; break;
 	default:  decenas = 0b10000000; //*display apagado durante el parpadeo
 	}
 }
@@ -205,17 +213,17 @@ void setBit(volatile uint8_t * puerto, uint8_t bit){
 }
 
 void moveMotor(motor* M, uint8_t direccion){
-	// Esta funcion mueve en la direccion asignada un motor
+	// Esta funcion mueve un motor en la direccion asignada
 	// Ejemplo:	moveMotor(motores[1],0);
-	//		moveMotor(&motor1,0);
+	//			moveMotor(&motor1,0);
 	
 	uint8_t aux = 0;
 	uint8_t mask = 0b00000011;
 
-	
-	if (M->port == &PORTB){ //PUEDE QUE SEA NECESARIO AÑADIR EN EL IF LA COND DE BREAK=DEACT
+	// Motor 2
+	if (M->port == &PORTB){
 		M->enable = ON;
-		M->bk = DEACT;	// DEJAR LA SITUACIÓN DONDE BREAK=ACTIVO, PARA FUNCION DINAMICSTOP
+		M->bk = DEACT;
 		M->dir = direccion;
 		
 		aux = (M->bk<<2)|(M->dir<<1)|M->enable;
@@ -225,8 +233,10 @@ void moveMotor(motor* M, uint8_t direccion){
 		
 		PORTB &= mask;
 		PORTB |= aux;
-		
-	} else if (M->port == &PORTL){
+	}
+	
+	// Resto de motores
+	else if (M->port == &PORTL){
 		M->dir = direccion;
 		M->enable = ON;
 		
@@ -251,13 +261,12 @@ void stopMotor(motor *M){//NOTA IMPORTANTE
 	uint8_t _dir = M->dir;
 	uint8_t _bk = DEACT;
 	
-	if (M->port == &PORTB){ //PUEDE QUE SEA NECESARIO AÑADIR EN EL IF LA COND DE BREAK=DEACT
+	if (M->port == &PORTB){
 		M->enable = OFF;
-		M->bk = ACT;	// DEJAR LA SITUACIÓN DONDE BREAK=ACTIVO, PARA FUNCION DINAMICSTOP
+		M->bk = ACT;
 		_bk = ACT;
 		
-		aux = (_bk<<2)|(_dir<<1)|_enable; //IMPORTANTE esto probablemente de problemas dado que bk, dir y enable se refieren a variables globales y no del struct
-		
+		aux = (_bk<<2)|(_dir<<1)|_enable;
 		mask = (mask<<1)|0x01;
 		mask = ~mask;
 		
@@ -270,7 +279,6 @@ void stopMotor(motor *M){//NOTA IMPORTANTE
 		mask = mask<<(M->index);
 		mask = ~mask;
 		
-		//aux = (direccion*2 + enable)*2^(M->index);
 		aux = (_dir<<1)|_enable;
 		aux = aux<<(M->index);
 		
@@ -317,7 +325,7 @@ int cb5(){//1seg
 
 //cargar bola
 void cargarbola(){
-	//pulsado=0;
+	pulsado=0;
 	if(PINL & 0b00100000){
 		moveMotor(&motor2, IZDA); //Lejos de recibir bola=IZDA
 		delay(motor2.retardo >> 1); // motor2.retardo >> 1 equivale a motor2.retardo*0.5
@@ -345,8 +353,6 @@ void cargarbola(){
 	//SW2
 	PCMSK0 |= 0b00100000;
 	sei();
-	
-	pulsado = 0;
 }
 
 //	INTERRUPCIONES
@@ -354,40 +360,55 @@ void cargarbola(){
 
 // Timer 5
 ISR (TIMER5_OVF_vect){ //* temporizador de 30 seg
-
-	contador++;
-	if(contador == SegDeJuego){
-		contador = 0;
-		ultima = 1;
-		TCCR5B = 0x00; //* deshabilito el temporizador de 30 segundos, q ya se volvera a habilitar cuando se tire por primera vez la siguiente ronda.
-
+	if (cont_T5 < SegDeJuego){
+		cont_T5++;
+	}
+	else{
+		cont_T5 = 0;
+		P_extra = 1;	// Se habilita la partida extra
+		TCCR5B = 0x00;	//* deshabilito el temporizador de 30 segundos, q ya se volvera a habilitar cuando se tire por primera vez la siguiente ronda.
 	}
 }
 
 // Timer 4
-ISR (TIMER4_OVF_vect){ //* temporizador de 0.1 segs para el parpadeo. 
-	contador01++;
+ISR (TIMER4_OVF_vect){ // temporizador de 0.1 segs para el parpadeo. 
+	if(cont_T4 < SegDeTemp){
+		cont_T4++;
+	}
 	
-	if(contador01 == SegDeTemp){
-			contador01 = 0;
-			contadorparp++;		//contamos 9 veces, para que a la décima vez, se apaguen los displays, 
-			if(contadorparp == 8){
-				contadorparp=0;	//y la siguiente vez vuelva a empezar con los displays mostrando la puntuacion normal
-				derecha = unidades;
-				izquierda = decenas;
-				unidades = 0b00000000;	//esto indica que no hay ninguna barrita de los displays encendida
-				decenas = 0b10000000; 
+	else{
+		/*
+		cont_T4 = 0;
+		contadorparp++;		//contamos 9 veces, para que a la décima vez, se apaguen los displays, 
+		if(contadorparp == 8){
+			contadorparp=0;	//y la siguiente vez vuelva a empezar con los displays mostrando la puntuacion normal
+			derecha = unidades;
+			izquierda = decenas;
+			unidades = 0b00000000;	//esto indica que no hay ninguna barrita de los displays encendida
+			decenas = 0b10000000; 
+			a=1;
+		}
 			
-				a=1;
-			}
-			
-			else if (a){
-				unidades = derecha;
-				decenas = izquierda;
-				a=0;
-				}
+		else if (a){
+			unidades = derecha;
+			decenas = izquierda;
+			a=0;
+		}
+		*/
+		cont_T4 = 0;
+		contadorparp++;
+		if(contadorparp == 0){
+			DISP_D = &decenas;
+			DISP_U = &unidades;
+		}
+		else if(contadorparp == 9){
+			DISP_U = &apagado;
+			DISP_D = &apagado;
+			contadorparp = 0;
+		}
 	}
 }
+
 
 
 // Timer 3
@@ -421,50 +442,44 @@ ISR(TIMER2_OVF_vect){
 // Timer 1
 ISR(TIMER1_OVF_vect){
 	
-	if(pulsado == 1){
-		if (overflowssw6 < OVERFLOWS_6000){
-			overflowssw6++;	
+	if(pulsado==1){	// Comportamiento para la cuenta de los bolos
+		if(overflowssw6 < OVERFLOWS_6000){
+			overflowssw6++;
 		}
-		
-		else if(overflowssw6 == OVERFLOWS_6000){
+		else{
 			overflowssw6=0;
+			
+			puntuacion += bandera1 + bandera2 + bandera3 + bandera4 + bandera5 + bandera6;
 		
-			// Variable carga de bola
-			cargar_bool = 0x01;
-					
-			TCCR1B = 0x00;//Deshabilito la interrupcion temporal
-		
-			if (bandera1 == 1) puntuacion++;
-			if (bandera2 == 1) puntuacion++;
-			if (bandera3 == 1) puntuacion++;
-			if (bandera4 == 1) puntuacion++;
-			if (bandera5 == 1) puntuacion++;
-			if (bandera6 == 1) puntuacion++;
-		
-			bandera1= 0; 
-			bandera2= 0; 
-			bandera3= 0; 
-			bandera4= 0; 
-			bandera5= 0; 
-			bandera6= 0;
+			bandera1 = 0;
+			bandera2 = 0;
+			bandera3 = 0;
+			bandera4 = 0;
+			bandera5 = 0;
+			bandera6 = 0;
+			TCCR1B = 0x00;	// Se deshabilita timer1
 		
 			un = puntuacion % 10;
 			de = puntuacion / 10;
 
-        	if (ultimatirada) {
-        		ultimatirada = 0;
-        		fin = 1;
-				TCCR4B = 0x01; //  habilito el temporizador del parpadeo de 0.1 segs. ESTA HABILITACION DEBE HACERSE CUANDO LA BOLA ESTA CARGADA PARA EMPEZAR UNA NUEVA RONDA
-        		TIMSK4 = 0x01; 
-        	}
+			if (P_extra) {
+				P_extra = 0;
+				fin = 1;
+				// Se habilita el temporizador del parpadeo de 0.1 segs
+				TCCR4B = 0x01;
+				TIMSK4 = 0x01;
+				// Se habilita el SW6 para empezar nueva partida
+				PCMSK2 = 0x01;
+			}
 
-         	pintar(un, de); //* actualiza las unidades y decenas en "binario", codificadas segun lo de Da,Db etc.
+			pintar(un, de);
 			PCMSK2 = 0b00000001;
-			TCCR1B = 0x00; //Deshabilito el Timer1
+			
+			CARGABOLA = 1;
+			TCCR1B = 0x00;	// Se deshabilita timer1
 		}
-		
 	}
-	else{
+	else{	// Control de la inercia del motor2
 		if(cont_T1 < 6){
 			(cont_T1)++;
 		}
@@ -481,96 +496,103 @@ ISR(TIMER1_OVF_vect){
 
 
 // Timer 0
-ISR(TIMER0_OVF_vect){
-	if (cambio) {				
-		PORTD = decenas;
-		cambio = 0;
+ISR(TIMER0_OVF_vect){	// Siempre se muestra por pantalla aquello a lo que apunten DISP_D y DISP_U
+	if (cambio) {			
+		PORTD = *DISP_D;
+		cambio = 0;			
 	}
 	else if (cambio == 0) {
-		PORTD = unidades;
+		PORTD = *DISP_U;
 		cambio = 1;
 	}
 }
 
-// Interrupcion SW6 y bolos
-ISR(PCINT2_vect){
+// Interrupcion SW6 y bolos (SO1 al S06)
+ISR(PCINT2_vect) {
 	
-	// SW6
-	if ((PINK & 0x01 ) == 0x01) {
+	if ((PINK & 0x01 )== 0x01) {
 		PCMSK2 = 0b11111100;
-		pulsado = 1;
 		
-		if(fin) { //* Compruebo si es la primera tirada de la siguiente ronda.
+		if(fin == 1) { // Comprueba si etá en el estado de FIN DE PARTIDA
 			un = 0;
 			de = 0;
 			puntuacion = 0;
 			unidades = 0;
 			decenas = 0;
+			
+			// Volvemos al estado de JUEGO
 			fin = 0;
-			//PrimeraTirada = 1;
-			ultima = 0;
-			TCCR4B = 0x00; //* deshabilito el temporizador de 0.1 segs, el del parpadeo
+			P_extra = 0;
+			
+			TCCR4B = 0x00; // deshabilito el temporizador de 0.1 segs, el del parpadeo
+
 			TCCR5A = 0X00; // WGM0...1 A 00 PORQUE QUEREMOS TRABAJAR EN MODO NORMAL
-            TCCR5B = 0x01; // WGM2...3 = 0 ( MODO NO0RMAL) , CS0...3 = 001 (SIN PREESCALAD, 1X)
-            TIMSK5 = 0x01; // activo con interrupcion por desbordamiento
-		}	
-		
-		else if( ultima ) { //* Compruebo si es la ultima lanzada
-			ultimatirada = 1;
+			TCCR5B = 0x01; // WGM2...3 = 0 ( MODO NO0RMAL) , CS0...3 = 001 (SIN PREESCALAD, 1X)
+			TIMSK5 = 0x01; // activo con interrupcion por desbordamiento
+			
+			// Volvemos a piner los punteros a su valos inicial
+			DISP_U = &decenas;
+			DISP_D = &unidades;
 		}
 		
-		stopMotor(&motor2);
-		moveMotor(&motor4, IZDA);//abre
-		TCCR1B = 0x01; //Habilito la interrupción temporal con preescalado clk/1 de 16bits
-		TIMSK1 = 0x01; //Habilito la interrupción 4.sec por overflow
+		else{
+			pulsado = 1;
+			stopMotor(&motor2);
+			moveMotor(&motor4, IZDA);//abre
+			TCCR1B = 0x01;//Habilito la interrupción temporal con preescalado clk/1 de 16bits
+			TIMSK1 = 0x01; //Habilito la interrupción 4.5sec por overflow
+			
+			// Variables del swing
+			cont_T1 = 0;
+			cont_T2 = 0;
+			cont_T3 = 0;
+			cont_SW2 = 0;
+			
+			// Deshabilitar SW2 y timers 2 y 3 (el 0 no es necesario pues se usa para los LEDS)
+			PCMSK0 &= 0b11011111;
+			TCCR2B = 0x00;
+			TCCR3B = 0x00;
+			
+			// Apagar LED
+			clearBit(&PORTK,1);
+		}
 	
-		// Variables del swing
-		cont_T1 = 0;
-		cont_T2 = 0;
-		cont_T3 = 0;
-		cont_SW2 = 0;
-	
-		// Deshabilitar SW2 y timers 2 y 3 (el 0 no es necesario pues se usa para los LEDS)
-		PCMSK0 &= 0b11011111;
-		TCCR2B = 0x00;
-		TCCR3B = 0x00;
-	
-		// Apagar LED
-		clearBit(&PORTK,1);
 	}
 	
 
 	else if (((PINK >> 2) & 0x01 )== 0x00) {				//bolo 1
-		PCMSK2 = 0b11111000;
-		bandera1 = 1; 	
+		PCMSK2 &= 0b11111000;
+		bandera1 = 1; 
 	}
 	
 	else if (((PINK >> 3) & 0x01 )== 0x00) {
-	   PCMSK2 = 0b11110100;
-	   bandera2 = 1;
+		PCMSK2 &= 0b11110100;
+		bandera2 = 1;
 	}
 	
 	
 	else if (((PINK >> 4) & 0x01) == 0x00) {
-	  PCMSK2 = 0b11101100;
-	  bandera3 = 1;
+		PCMSK2 &= 0b11101100;
+		bandera3 = 1;
 	}
 	
 	
 	else if (((PINK >> 5) & 0x01) == 0x00) {
-	PCMSK2 = 0b11011100;
-	  bandera4 = 1;
+		PCMSK2 &= 0b11011100;
+		bandera4 = 1;
 	}
 
 	else if (((PINK >> 6) & 0x01 )== 0x00) {
-	PCMSK2 = 0b10111100;
-	  bandera5 = 1;
+		PCMSK2 &= 0b10111100;
+		bandera5 = 1;
 	}
 
 	else if (((PINK >> 7) & 0x01 )== 0x00) {
-	PCMSK2 = 0b01111100;
-	  bandera6 = 1;
+		PCMSK2 &= 0b01111100;
+		bandera6 = 1;
 	}
+	
+	
 }
 
 // Interruocion SW2 => PCINT5 (PB5)
@@ -578,13 +600,12 @@ ISR(PCINT0_vect){
 	// Funcionamiento del swing:
 	// 1) Avanza hacia la izda
 	// 2) Toca SW2_medio => Cont++
-	// 3) Toca SW2_izda => Cont++
-	// 4) A partir de aqui, siempre que se detecte un SW2:
+	// 3) A partir de aqui, siempre que se detecte un SW2:
 	//	- Se deeshabilita SW2
 	//	- Se para el motor y se espera un tiempo para el frenado
 	//	- Se pone en marcha en otro sentido
 	//	- Despues de un tiempo suficiente se habilita SW2
-	// 5) Cuando se pulsa SW6, se reinician los valores de swing()
+	// 4) Cuando se pulsa SW6, se reinician los valores de swing()
 	
 	
 	// Deshabilitamos esta interrupcion
@@ -605,6 +626,7 @@ ISR(PCINT0_vect){
 				// Se activa el parpadeo del LED
 				TCCR2B = 0x01;
 			}
+			
 			cont_SW2 = 1;
 		}
 		
@@ -639,11 +661,9 @@ int main(void){
     setup();
 	inicializacion();
 	while(1){
-		if (cargar_bool == 0x01){
+		if(CARGABOLA == 1 && fin == 0){
 			cargarbola();
-			cargar_bool = 0x00;
+			CARGABOLA=0;
 		}
-		
 	}
-   
 }
