@@ -112,7 +112,7 @@ void setup(void){
 	
 	TCCR0A = 0x00;
 	TCCR0B = 0b00000011; // *Empieza a contar el temporizador del display q alterna unidades y decenas a 8192 microsegundos.
-    TIMSK0 = 0x01; //
+    	TIMSK0 = 0x01; 
 	
 	//Timer 2 para parpadeo Led en partida extra cada 0.1s cuando listo para lanzar
 	TCCR2A = 0x00; 
@@ -120,13 +120,21 @@ void setup(void){
 	TIMSK2 = 0x01; 
 
 	//Timer 1 CrisIbra lanz-elev; timer3 para swing para 1s? de swing centro-izq o izq-centro; 
-	TCCR1A = 0x00; 					//falta mirar overflows a 8Mhz
+	TCCR1A = 0x00; 					
 	TCCR1B = 0x00; // Deshabilitado
 	TIMSK1 = 0x01; 
 	
 	//Timer 3 DavidTito Antirrebotes para SW2 posic medio
-	TCCR3A = 0x00; 					//falta mirar overflows a 8Mhz y hacer subrutina
-	TCCR3B = 0x00; // Deshabilitado
+	TCCR3A = 0x00; 					
+	TCCR3B = 0x00; // Deshabilitado inic
+	TIMSK3 = 0x01; 
+	
+	TCCR4A = 0x00; 					
+	TCCR4B = 0x00; // Deshabilitado parpadeo tras partida extra
+	TIMSK4 = 0x01; 
+	
+	TCCR5A = 0x00; 					
+	TCCR5B = 0x01; //Contador 30 seg habilitado
 	TIMSK3 = 0x01; 
 	
 	//habilitadas interrupciones grupo 2 (de la 16 a la 23) y el grupo 0 (de la 0 a la 7)
