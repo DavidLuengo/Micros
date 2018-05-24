@@ -111,7 +111,8 @@ void setup(void){
 	cli();	
 	
 	TCCR0A = 0x00;
-	TCCR0B = 0b00000011; // *Empieza a contar el temporizador del display q alterna unidades y decenas a 8192 microsegundos.
+	TCCR0B = 0b00000011; //Empieza a contar el temporizador del display q alterna unidades y decenas a 8192 microsegundos
+				//Habilitado y con prescalado de 64
     	TIMSK0 = 0x01; 
 	
 	//Timer 2 para parpadeo Led en partida extra cada 0.1s cuando listo para lanzar
@@ -126,7 +127,7 @@ void setup(void){
 	
 	//Timer 3 DavidTito Antirrebotes para SW2 posic medio
 	TCCR3A = 0x00; 					
-	TCCR3B = 0x00; // Deshabilitado inic
+	TCCR3B = 0x00; // Deshabilitado 
 	TIMSK3 = 0x01; 
 	
 	TCCR4A = 0x00; 					
