@@ -135,7 +135,7 @@ void setup(void){
 	
 	TCCR5A = 0x00; 					
 	TCCR5B = 0x01; //Contador 30 seg habilitado
-	TIMSK3 = 0x01; 
+	TIMSK5 = 0x01; 
 	
 	//habilitadas interrupciones grupo 2 (de la 16 a la 23) y el grupo 0 (de la 0 a la 7)
 	PCICR = 0b00000101;
@@ -143,9 +143,7 @@ void setup(void){
 	PCMSK2 = 0x00;
 	
 	sei();
-	
-	//Esperamos un tiempo a que todos los SW estén pulsados.
-	
+
 }
 
 
